@@ -42,9 +42,8 @@
       jayson: { name: "Jayson", message: "Jackbox is on the lineup because of you so you better show up. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Just pull up and do that thing where everyone ends up near you without you even trying.", emoji: "\uD83E\uDD19" },
       jessica: { name: "Jessica", message: "We need someone to bring the energy and you were literally the first person we thought of. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. We need you screaming \"YOOO THAT\u2019S THE ONE\" and making everyone else\u2019s moment ten times funnier. Bring the chaos.", emoji: "\uD83D\uDD25" },
       david: { name: "David", message: "We already know you\u2019re going to say \"I\u2019m cool\" but you\u2019re coming anyway. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. Find your spot, grab a plate of wings, watch the chaos, and hit us with one of those sideline comments nobody\u2019s ready for.", emoji: "\uD83D\uDE0E" },
-      keno: { name: "Keno", message: "It\u2019s been a minute but we\u2019re getting the people together for a night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and the dominoes table with your name on it. Come run your table, slam your bones, talk your trash. Bring Shannon too. Isabella and David will be there so she\u2019s good.", emoji: "\uD83C\uDFB2" },
-      shannon: { name: "Shannon", message: "We\u2019re putting together a night at our place and you\u2019re invited. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. Keno, Isabella, David, and us will be there so you\u2019ve got your people. No pressure to play anything. Just come enjoy the food and the show.", emoji: "\uD83D\uDC9B" },
-      isabella: { name: "Isabella", message: "It\u2019s been a while but we\u2019re getting everyone together for a night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. You might not know everyone yet but that won\u2019t last long. You\u2019ve got that energy where people just feel comfortable around you. Come through.", emoji: "\uD83C\uDF1F" },
+      keno: { name: "Keno", message: "It\u2019s been a minute but we\u2019re getting the people together for a night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and the dominoes table with your name on it. Come run your table, slam your bones, talk your trash. Bring Shannen too. David and us will be there so she\u2019s good.", emoji: "\uD83C\uDFB2" },
+      shannen: { name: "Shannen", message: "We\u2019re putting together a night at our place and you\u2019re invited. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. Keno, David, and us will be there so you\u2019ve got your people. No pressure to play anything. Just come enjoy the food and the show.", emoji: "\uD83D\uDC9B" },
       bennett: { name: "Bennett", message: "You\u2019re the type of person that makes a night like this actually work. The semester is over and we\u2019re getting together one last time at our place before everyone goes their separate ways. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. We need you there doing what you do. Pulling the quiet ones in, reading the room, and keeping the energy alive when it dips. Come through.", emoji: "\uD83D\uDDE3\uFE0F" },
       jude: { name: "Jude", message: "No rules, no script, no pressure to do what everyone else is doing. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Just come through, do your thing at your own pace, and let that dry humor surprise people on Jackbox.", emoji: "\uD83C\uDFAE" },
       avery: { name: "Avery", message: "Your people are already going to be there so you might as well pull up. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Bennett, David, and Jude will be there so you\u2019ve got your crew, plus some new faces you\u2019ll blend right in with.", emoji: "\u2660\uFE0F" },
@@ -81,6 +80,15 @@
           h("div", {style:{fontSize:"36px",marginBottom:"6px"}}, "\uD83C\uDFB2\uD83C\uDF55\uD83C\uDFAE"),
           h("h1", {style:{margin:0,fontSize:"24px",fontWeight:800,letterSpacing:"-0.5px",color:"#fff",textShadow:"0 2px 8px rgba(0,0,0,0.2)"}}, "Game Night"),
           h("p", {style:{margin:"6px 0 0",fontSize:"14px",color:"rgba(255,255,255,0.85)",fontWeight:500}}, props.subtitle || "One last link up before we all scatter")
+        )
+      );
+    }
+
+    function InfoBar() {
+      return h("div", {style:{maxWidth:500,margin:"0 auto",padding:"12px 20px 0"}},
+        h("div", {style:{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:"12px",padding:"12px 16px",fontSize:"13px",color:"#c9d1d9",lineHeight:1.6}},
+          h("p", {style:{margin:"0 0 6px",fontWeight:700,color:"#fb923c"}}, "\uD83D\uDCCD 196 Pruitt Dr, Crawfordville, FL 32327"),
+          h("p", {style:{margin:0,color:"#8b949e"}}, "\uD83D\uDE97 Try to carpool if you can. Coordinate with each other and pull up together.")
         )
       );
     }
@@ -133,7 +141,7 @@
       return h(Fragment, null,
         h("div", {style:{background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:"14px",padding:"16px",textAlign:"center",marginBottom:"16px"}},
           h("span", {style:{fontSize:"28px",fontWeight:800,color:"#f97316"}}, props.totalResponses),
-          h("span", {style:{color:"#8b949e",fontSize:"14px",marginLeft:"8px"}}, (props.totalResponses===1?"response":"responses")+" of 13")
+          h("span", {style:{color:"#8b949e",fontSize:"14px",marginLeft:"8px"}}, (props.totalResponses===1?"response":"responses")+" of 12")
         ),
         h("div", {style:Object.assign({},cardStyle,{marginBottom:"16px"})},
           h("h3", {style:{margin:"0 0 10px",fontSize:"14px",fontWeight:700,color:"#e6edf3"}}, "\uD83D\uDC65 Who's responded"),
@@ -276,6 +284,7 @@
       if (!person && view === "survey") {
         return h("div", {style:containerStyle},
           h(Header, null),
+          h(InfoBar, null),
           renderToggle(),
           h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
             h("div", {style:cardStyle},
@@ -303,6 +312,7 @@
       if (!person && view === "results") {
         return h("div", {style:containerStyle},
           h(Header, null),
+          h(InfoBar, null),
           renderToggle(),
           h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
             h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey})
@@ -317,6 +327,7 @@
 
       return h("div", {style:containerStyle},
         h(Header, {subtitle: person.emoji + " " + person.name + ", you're invited"}),
+        h(InfoBar, null),
         h("div", {style:{padding:"12px 20px 0",maxWidth:500,margin:"0 auto"}},
           h("button", {onClick:goBack, style:{background:"none",border:"none",color:"#8b949e",fontSize:"13px",fontWeight:600,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:"4px"}},
             "\u2190 Not " + person.name + "? Go back"
