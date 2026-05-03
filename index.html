@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Night</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #e6edf3;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script>
+    var h = React.createElement;
+    var useState = React.useState;
+    var useEffect = React.useEffect;
+    var Fragment = React.Fragment;
+
+    firebase.initializeApp({
+      apiKey: "AIzaSyB-SKKRweM4R9o1418eDkH-H_KFBP3Uz-A",
+      authDomain: "game-night-demography.firebaseapp.com",
+      projectId: "game-night-demography",
+      storageBucket: "game-night-demography.firebasestorage.app",
+      messagingSenderId: "944898555671",
+      appId: "1:944898555671:web:710bf68df1b6ab04d08152"
+    });
+    var db = firebase.firestore();
+
+    var PEOPLE = {
+      molly: { name: "Molly", message: "You already know nobody\u2019s leaving this semester without one more night together. We\u2019re hosting at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. We need your stories, your energy, and you not leaving early like you always don\u2019t. Come through.", emoji: "\u2728" },
+      cedrina: { name: "Cedrina", message: "Before everyone disappears after this semester, we\u2019re getting together one more time at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, dominoes & cards all night. Grab a plate, get comfortable, and let the night come to you. Oh and bring your phone. We know you\u2019re capturing everything.", emoji: "\uD83D\uDCF8" },
+      jayson: { name: "Jayson", message: "Jackbox is on the lineup because of you so you better show up. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Just pull up and do that thing where everyone ends up near you without you even trying.", emoji: "\uD83E\uDD19" },
+      jessica: { name: "Jessica", message: "We need someone to bring the energy and you were literally the first person we thought of. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. We need you screaming \"YOOO THAT\u2019S THE ONE\" and making everyone else\u2019s moment ten times funnier. Bring the chaos.", emoji: "\uD83D\uDD25" },
+      david: { name: "David", message: "We already know you\u2019re going to say \"I\u2019m cool\" but you\u2019re coming anyway. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. Find your spot, grab a plate of wings, watch the chaos, and hit us with one of those sideline comments nobody\u2019s ready for.", emoji: "\uD83D\uDE0E" },
+      keno: { name: "Keno", message: "It\u2019s been a minute but we\u2019re getting the people together for a night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and the dominoes table with your name on it. Come run your table, slam your bones, talk your trash. Bring Shannon too. Isabella and David will be there so she\u2019s good.", emoji: "\uD83C\uDFB2" },
+      shannon: { name: "Shannon", message: "We\u2019re putting together a night at our place and you\u2019re invited. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. Keno, Isabella, David, and us will be there so you\u2019ve got your people. No pressure to play anything. Just come enjoy the food and the show.", emoji: "\uD83D\uDC9B" },
+      isabella: { name: "Isabella", message: "It\u2019s been a while but we\u2019re getting everyone together for a night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. You might not know everyone yet but that won\u2019t last long. You\u2019ve got that energy where people just feel comfortable around you. Come through.", emoji: "\uD83C\uDF1F" },
+      bennett: { name: "Bennett", message: "You\u2019re the type of person that makes a night like this actually work. The semester is over and we\u2019re getting together one last time at our place before everyone goes their separate ways. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and a dominoes table going all night. We need you there doing what you do. Pulling the quiet ones in, reading the room, and keeping the energy alive when it dips. Come through.", emoji: "\uD83D\uDDE3\uFE0F" },
+      jude: { name: "Jude", message: "No rules, no script, no pressure to do what everyone else is doing. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Just come through, do your thing at your own pace, and let that dry humor surprise people on Jackbox.", emoji: "\uD83C\uDFAE" },
+      avery: { name: "Avery", message: "Your people are already going to be there so you might as well pull up. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Bennett, David, and Jude will be there so you\u2019ve got your crew, plus some new faces you\u2019ll blend right in with.", emoji: "\u2660\uFE0F" },
+      terrence: { name: "Terrence", message: "The dominoes table is already set up and it\u2019s waiting for you. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and bones all night. You already know what\u2019s going to happen. Pull up, sit down, and quietly run it. The bones do the talking, T.", emoji: "\uD83C\uDFAF" },
+      ian: { name: "Ian", message: "You don\u2019t have to play a single thing and that\u2019s a promise. One night at our place. Wings, pizza, drinks, Cards Against Humanity, Jackbox, and dominoes & cards all night. Just pull up, exist in the room, and drop one of those random comments that has everyone looking at each other. Just come be Ian.", emoji: "\uD83C\uDF00" }
+    };
+
+    var DIETARY_OPTIONS = ["No restrictions","Vegetarian","Vegan","Gluten-free","Dairy-free","Nut allergy","Shellfish allergy"];
+    var DRINK_OPTIONS = ["Soda (Coke, Sprite, etc.)","Juice","Lemonade","Water","Sweet tea"];
+    var DATE_OPTIONS = ["Saturday, May 16th","Saturday, May 30th","Saturday, June 6th","Saturday, June 13th","Can't make it"];
+    var GAME_OPTIONS = ["Cards Against Humanity","Jackbox","Dominoes","Jenga","You Laugh You Lose","Uno"];
+
+    var containerStyle = { minHeight:"100vh", background:"linear-gradient(145deg, #0d1117 0%, #161b22 50%, #0d1117 100%)", fontFamily:"'Segoe UI', system-ui, -apple-system, sans-serif", color:"#e6edf3" };
+    var cardStyle = { background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:"16px", padding:"20px 18px" };
+    var inputStyle = { width:"100%", padding:"10px 14px", borderRadius:"10px", border:"1.5px solid rgba(255,255,255,0.1)", fontSize:"14px", background:"rgba(255,255,255,0.04)", color:"#e6edf3", marginTop:"10px", outline:"none", boxSizing:"border-box" };
+
+    function toggleStyleFn(active) {
+      return { flex:1, padding:"10px", borderRadius:"10px", border:"none", fontSize:"14px", fontWeight:600, cursor:"pointer", transition:"all 0.2s", background:active?"linear-gradient(135deg, #f97316, #ea580c)":"rgba(255,255,255,0.06)", color:active?"#fff":"#8b949e" };
+    }
+    function submitStyleFn(enabled) {
+      return { width:"100%", padding:"16px", borderRadius:"14px", border:"none", fontSize:"16px", fontWeight:700, cursor:enabled?"pointer":"not-allowed", background:enabled?"linear-gradient(135deg, #f97316, #ea580c)":"rgba(255,255,255,0.06)", color:enabled?"#fff":"#484f58", marginTop:"8px", transition:"all 0.2s", boxShadow:enabled?"0 4px 20px rgba(249,115,22,0.3)":"none" };
+    }
+
+    function getPersonKey() {
+      var hash = window.location.hash.replace("#", "").toLowerCase().trim();
+      if (hash && PEOPLE[hash]) return hash;
+      return null;
+    }
+
+    function Header(props) {
+      return h("div", {style:{background:"linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)",padding:"32px 20px 28px",textAlign:"center",position:"relative",overflow:"hidden"}},
+        h("div", {style:{position:"absolute",top:0,left:0,right:0,bottom:0,background:"radial-gradient(circle at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%)"}}),
+        h("div", {style:{position:"relative",zIndex:1}},
+          h("div", {style:{fontSize:"36px",marginBottom:"6px"}}, "\uD83C\uDFB2\uD83C\uDF55\uD83C\uDFAE"),
+          h("h1", {style:{margin:0,fontSize:"24px",fontWeight:800,letterSpacing:"-0.5px",color:"#fff",textShadow:"0 2px 8px rgba(0,0,0,0.2)"}}, "Game Night"),
+          h("p", {style:{margin:"6px 0 0",fontSize:"14px",color:"rgba(255,255,255,0.85)",fontWeight:500}}, props.subtitle || "One last link up before we all scatter")
+        )
+      );
+    }
+
+    function Section(props) {
+      return h("div", {style:{marginBottom:"24px"}},
+        h("h3", {style:{margin:"0 0 2px",fontSize:"15px",fontWeight:700,color:"#e6edf3"}}, props.title),
+        props.subtitle ? h("p", {style:{margin:"0 0 12px",fontSize:"12px",color:"#6e7681"}}, props.subtitle) : null,
+        props.children
+      );
+    }
+
+    function Chip(props) {
+      return h("button", {onClick:props.onClick, style:{padding:"8px 16px",borderRadius:"20px",border:props.selected?"1.5px solid #f97316":"1.5px solid rgba(255,255,255,0.1)",fontSize:"13px",fontWeight:600,cursor:"pointer",background:props.selected?"rgba(249,115,22,0.15)":"rgba(255,255,255,0.04)",color:props.selected?"#fb923c":"#8b949e",transition:"all 0.15s"}},
+        (props.selected?"\u2713 ":"")+props.label
+      );
+    }
+
+    function DateChip(props) {
+      return h("button", {onClick:props.onClick, style:{padding:"14px 16px",borderRadius:"12px",border:props.selected?"1.5px solid #f97316":"1.5px solid rgba(255,255,255,0.08)",fontSize:"14px",fontWeight:600,cursor:"pointer",background:props.selected?"rgba(249,115,22,0.12)":"rgba(255,255,255,0.03)",color:props.selected?"#fb923c":"#8b949e",textAlign:"left",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"10px"}},
+        h("span", {style:{width:"20px",height:"20px",borderRadius:"6px",border:props.selected?"2px solid #f97316":"2px solid rgba(255,255,255,0.15)",background:props.selected?"#f97316":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",color:"#fff",flexShrink:0}}, props.selected?"\u2713":""),
+        props.label
+      );
+    }
+
+    function ResultSection(props) {
+      if (!props.items || props.items.length === 0) return null;
+      var max = props.items[0][1] || 1;
+      return h("div", {style:{marginBottom:"20px"}},
+        h("h3", {style:{margin:"0 0 10px",fontSize:"14px",fontWeight:700,color:"#e6edf3"}}, props.title),
+        h("div", {style:{background:"rgba(255,255,255,0.03)",borderRadius:"12px",border:"1px solid rgba(255,255,255,0.06)",overflow:"hidden"}},
+          props.items.map(function(item, i) {
+            var label = item[0]; var count = item[1];
+            return h("div", {key:label, style:{padding:"12px 14px",borderBottom:i<props.items.length-1?"1px solid rgba(255,255,255,0.04)":"none",position:"relative"}},
+              h("div", {style:{position:"absolute",top:0,left:0,bottom:0,width:(count/props.total*100)+"%",background:count===max?"rgba(249,115,22,0.1)":"rgba(255,255,255,0.02)",transition:"width 0.3s"}}),
+              h("div", {style:{position:"relative",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+                h("span", {style:{fontSize:"13px",fontWeight:count===max?700:500,color:count===max?"#fb923c":"#8b949e"}}, label),
+                h("span", {style:{fontSize:"13px",fontWeight:700,color:count===max?"#f97316":"#6e7681"}}, count)
+              )
+            );
+          })
+        )
+      );
+    }
+
+    function ResultsView(props) {
+      if (props.loading) return h("p", {style:{textAlign:"center",color:"#8b949e",padding:"40px 0"}}, "Loading...");
+      if (!props.responses || props.responses.length === 0) return h("p", {style:{textAlign:"center",color:"#8b949e",padding:"40px 0"}}, "No responses yet");
+      var peopleValues = Object.values(PEOPLE);
+      return h(Fragment, null,
+        h("div", {style:{background:"rgba(249,115,22,0.1)",border:"1px solid rgba(249,115,22,0.25)",borderRadius:"14px",padding:"16px",textAlign:"center",marginBottom:"16px"}},
+          h("span", {style:{fontSize:"28px",fontWeight:800,color:"#f97316"}}, props.totalResponses),
+          h("span", {style:{color:"#8b949e",fontSize:"14px",marginLeft:"8px"}}, (props.totalResponses===1?"response":"responses")+" of 13")
+        ),
+        h("div", {style:Object.assign({},cardStyle,{marginBottom:"16px"})},
+          h("h3", {style:{margin:"0 0 10px",fontSize:"14px",fontWeight:700,color:"#e6edf3"}}, "\uD83D\uDC65 Who's responded"),
+          h("div", {style:{display:"flex",flexWrap:"wrap",gap:"6px"}},
+            peopleValues.map(function(p) {
+              var responded = props.respondedNames.indexOf(p.name) !== -1;
+              return h("span", {key:p.name, style:{padding:"6px 12px",borderRadius:"16px",fontSize:"12px",fontWeight:600,background:responded?"rgba(34,197,94,0.12)":"rgba(255,255,255,0.04)",border:responded?"1px solid rgba(34,197,94,0.3)":"1px solid rgba(255,255,255,0.08)",color:responded?"#4ade80":"#484f58"}},
+                (responded?"\u2713 ":"")+p.name
+              );
+            })
+          )
+        ),
+        h(ResultSection, {title:"\uD83D\uDCC5 Date Votes",items:props.tallyItems("dates"),total:props.totalResponses}),
+        h(ResultSection, {title:"\uD83C\uDF7D\uFE0F Dietary Restrictions",items:props.tallyItems("dietary"),total:props.totalResponses}),
+        h(ResultSection, {title:"\uD83E\uDD64 Drink Requests",items:props.tallyItems("drinks"),total:props.totalResponses}),
+        h(ResultSection, {title:"\uD83C\uDFAF Pick Your Poison",items:props.tallyItems("games"),total:props.totalResponses}),
+        h("div", {style:{marginTop:"20px"}},
+          h("h3", {style:{margin:"0 0 10px",fontSize:"14px",fontWeight:700,color:"#e6edf3"}}, "\uD83D\uDCCB Individual Responses"),
+          props.responses.map(function(r, i) {
+            return h("div", {key:i, style:Object.assign({},cardStyle,{marginBottom:"8px",padding:"14px"})},
+              h("p", {style:{margin:"0 0 6px",fontSize:"14px",fontWeight:700,color:"#fb923c"}}, r.person),
+              h("p", {style:{margin:"0 0 2px",fontSize:"12px",color:"#8b949e"}},
+                h("strong", {style:{color:"#c9d1d9"}}, "Dietary: "), r.dietary && r.dietary.length ? r.dietary.join(", ") : "None listed"
+              ),
+              h("p", {style:{margin:"0 0 2px",fontSize:"12px",color:"#8b949e"}},
+                h("strong", {style:{color:"#c9d1d9"}}, "Drinks: "), r.drinks && r.drinks.length ? r.drinks.join(", ") : "None listed"
+              ),
+              h("p", {style:{margin:"0 0 2px",fontSize:"12px",color:"#8b949e"}},
+                h("strong", {style:{color:"#c9d1d9"}}, "Dates: "), r.dates ? r.dates.join(", ") : ""
+              ),
+              r.games && r.games.length > 0 ? h("p", {style:{margin:"2px 0 0",fontSize:"12px",color:"#8b949e"}},
+                h("strong", {style:{color:"#c9d1d9"}}, "Games: "), r.games.join(", ")
+              ) : null
+            );
+          })
+        ),
+        h("button", {onClick:props.resetSurvey,style:{width:"100%",padding:"12px",borderRadius:"10px",border:"1px solid rgba(220,38,38,0.3)",fontSize:"13px",fontWeight:600,cursor:"pointer",background:"rgba(220,38,38,0.08)",color:"#f87171",marginTop:"20px"}}, "Reset All Responses")
+      );
+    }
+
+    function App() {
+      var _pk = useState(null); var personKey = _pk[0]; var setPersonKey = _pk[1];
+      var _v = useState("survey"); var view = _v[0]; var setView = _v[1];
+      var _d = useState([]); var dietary = _d[0]; var setDietary = _d[1];
+      var _do = useState(""); var dietaryOther = _do[0]; var setDietaryOther = _do[1];
+      var _dr = useState([]); var drinks = _dr[0]; var setDrinks = _dr[1];
+      var _dro = useState(""); var drinkOther = _dro[0]; var setDrinkOther = _dro[1];
+      var _dt = useState([]); var dates = _dt[0]; var setDates = _dt[1];
+      var _g = useState([]); var games = _g[0]; var setGames = _g[1];
+      var _s = useState(false); var submitted = _s[0]; var setSubmitted = _s[1];
+      var _r = useState([]); var responses = _r[0]; var setResponses = _r[1];
+      var _l = useState(false); var loading = _l[0]; var setLoading = _l[1];
+      var _sd = useState(false); var showOtherDietary = _sd[0]; var setShowOtherDietary = _sd[1];
+      var _sdr = useState(false); var showOtherDrink = _sdr[0]; var setShowOtherDrink = _sdr[1];
+
+      useEffect(function() {
+        var key = getPersonKey();
+        setPersonKey(key);
+        function handleHash() { setPersonKey(getPersonKey()); }
+        window.addEventListener("hashchange", handleHash);
+        return function() { window.removeEventListener("hashchange", handleHash); };
+      }, []);
+
+      var person = personKey ? PEOPLE[personKey] : null;
+
+      function toggleItem(list, setList, item) {
+        if (item === "No restrictions" && list.indexOf(item) !== -1) { setList([]); }
+        else if (item === "No restrictions") { setList(["No restrictions"]); }
+        else {
+          var filtered = list.filter(function(i) { return i !== "No restrictions"; });
+          if (filtered.indexOf(item) !== -1) { setList(filtered.filter(function(i) { return i !== item; })); }
+          else { setList(filtered.concat([item])); }
+        }
+      }
+
+      function handleSubmit() {
+        if (dates.length === 0) return;
+        var dietaryFinal = dietary.slice();
+        if (showOtherDietary && dietaryOther.trim()) dietaryFinal.push(dietaryOther.trim());
+        var drinksFinal = drinks.slice();
+        if (showOtherDrink && drinkOther.trim()) drinksFinal.push(drinkOther.trim());
+        var response = {
+          person: person ? person.name : "Unknown",
+          dietary: dietaryFinal,
+          drinks: drinksFinal,
+          dates: dates,
+          games: games,
+          timestamp: new Date().toISOString()
+        };
+        db.collection("responses").add(response).then(function() {
+          setSubmitted(true);
+        }).catch(function(e) { console.error("Error saving:", e); });
+      }
+
+      function loadResponses() {
+        setLoading(true);
+        db.collection("responses").orderBy("timestamp").get().then(function(snapshot) {
+          var data = snapshot.docs.map(function(doc) { return doc.data(); });
+          setResponses(data);
+          setLoading(false);
+        }).catch(function() { setResponses([]); setLoading(false); });
+      }
+
+      function resetSurvey() {
+        db.collection("responses").get().then(function(snapshot) {
+          var batch = db.batch();
+          snapshot.docs.forEach(function(doc) { batch.delete(doc.ref); });
+          return batch.commit();
+        }).then(function() { setResponses([]); }).catch(function(e) { console.error("Error resetting:", e); });
+      }
+
+      useEffect(function() { if (view === "results") loadResponses(); }, [view]);
+
+      function tallyItems(key) {
+        var counts = {};
+        responses.forEach(function(r) {
+          (r[key] || []).forEach(function(item) { counts[item] = (counts[item] || 0) + 1; });
+        });
+        return Object.entries(counts).sort(function(a, b) { return b[1] - a[1]; });
+      }
+
+      var respondedNames = responses.map(function(r) { return r.person; });
+      var totalResponses = responses.length;
+
+      function goBack() {
+        window.location.hash = "";
+        setPersonKey(null); setSubmitted(false); setDietary([]); setDrinks([]);
+        setDates([]); setGames([]); setDietaryOther(""); setDrinkOther("");
+        setShowOtherDietary(false); setShowOtherDrink(false);
+      }
+
+      function renderToggle() {
+        return h("div", {style:{display:"flex",gap:"4px",padding:"16px 20px 8px",maxWidth:500,margin:"0 auto"}},
+          h("button", {onClick:function(){setView("survey");}, style:toggleStyleFn(view==="survey")}, "\uD83D\uDCDD Take Survey"),
+          h("button", {onClick:function(){setView("results");}, style:toggleStyleFn(view==="results")}, "\uD83D\uDCCA Results")
+        );
+      }
+
+      // Landing page - no person, survey view
+      if (!person && view === "survey") {
+        return h("div", {style:containerStyle},
+          h(Header, null),
+          renderToggle(),
+          h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
+            h("div", {style:cardStyle},
+              h("p", {style:{margin:"0 0 6px",fontSize:"16px",fontWeight:700,color:"#e6edf3"}}, "Who are you?"),
+              h("p", {style:{margin:"0 0 16px",fontSize:"13px",color:"#6e7681"}}, "Tap your name to see your invite"),
+              h("div", {style:{display:"flex",flexDirection:"column",gap:"6px"}},
+                Object.keys(PEOPLE).map(function(key) {
+                  var p = PEOPLE[key];
+                  return h("button", {
+                    key:key,
+                    onClick:function(){window.location.hash=key;setPersonKey(key);},
+                    style:{padding:"14px 16px",borderRadius:"12px",border:"1.5px solid rgba(255,255,255,0.08)",fontSize:"15px",fontWeight:600,cursor:"pointer",background:"rgba(255,255,255,0.03)",color:"#c9d1d9",textAlign:"left",transition:"all 0.15s",display:"flex",alignItems:"center",gap:"10px"}
+                  },
+                    h("span", {style:{fontSize:"18px"}}, p.emoji),
+                    p.name
+                  );
+                })
+              )
+            )
+          )
+        );
+      }
+
+      // Landing page - no person, results view
+      if (!person && view === "results") {
+        return h("div", {style:containerStyle},
+          h(Header, null),
+          renderToggle(),
+          h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
+            h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey})
+          )
+        );
+      }
+
+      // Person selected
+      var canSubmit = dates.length > 0 && (dates.indexOf("Can't make it") !== -1 || games.length === 4);
+      var cantMakeIt = dates.indexOf("Can't make it") !== -1;
+      var submitLabel = dates.length === 0 ? "Select at least one option" : cantMakeIt ? "Submit" : games.length !== 4 ? "Pick " + (4 - games.length) + " more game" + (4 - games.length !== 1 ? "s" : "") : "I'm in. Submit";
+
+      return h("div", {style:containerStyle},
+        h(Header, {subtitle: person.emoji + " " + person.name + ", you're invited"}),
+        h("div", {style:{padding:"12px 20px 0",maxWidth:500,margin:"0 auto"}},
+          h("button", {onClick:goBack, style:{background:"none",border:"none",color:"#8b949e",fontSize:"13px",fontWeight:600,cursor:"pointer",padding:"4px 0",display:"flex",alignItems:"center",gap:"4px"}},
+            "\u2190 Not " + person.name + "? Go back"
+          )
+        ),
+        h("div", {style:{display:"flex",gap:"4px",padding:"8px 20px 8px",maxWidth:500,margin:"0 auto"}},
+          h("button", {onClick:function(){setView("survey");}, style:toggleStyleFn(view==="survey")}, "\uD83D\uDCDD Take Survey"),
+          h("button", {onClick:function(){setView("results");}, style:toggleStyleFn(view==="results")}, "\uD83D\uDCCA Results")
+        ),
+        h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
+          // Survey form
+          view === "survey" && !submitted ? h("div", null,
+            // Invite message
+            h("div", {style:Object.assign({},cardStyle,{marginBottom:"24px"})},
+              h("p", {style:{margin:"0 0 16px",fontSize:"20px",fontWeight:800,color:"#f97316"}}, person.name + ", you're invited. " + person.emoji),
+              h("p", {style:{margin:"0",fontSize:"15px",color:"#e6edf3",lineHeight:1.75}}, person.message),
+              h("p", {style:{margin:"16px 0 0",fontSize:"14px",color:"#fb923c",fontWeight:600}}, "Fill this out real quick so we can lock everything in. \u2B07\uFE0F")
+            ),
+            // Dietary
+            h(Section, {title:"Any food allergies or dietary restrictions?",subtitle:"Select all that apply"},
+              h("div", {style:{display:"flex",flexWrap:"wrap",gap:"8px"}},
+                DIETARY_OPTIONS.map(function(opt) { return h(Chip, {key:opt,label:opt,selected:dietary.indexOf(opt)!==-1,onClick:function(){toggleItem(dietary,setDietary,opt);}}); }),
+                h(Chip, {label:"Other",selected:showOtherDietary,onClick:function(){setShowOtherDietary(!showOtherDietary);}})
+              ),
+              showOtherDietary ? h("input", {type:"text",placeholder:"Please specify...",value:dietaryOther,onChange:function(e){setDietaryOther(e.target.value);},style:inputStyle}) : null
+            ),
+            // Drinks
+            h(Section, {title:"What drinks do you want to see?",subtitle:"Select all that apply"},
+              h("div", {style:{display:"flex",flexWrap:"wrap",gap:"8px"}},
+                DRINK_OPTIONS.map(function(opt) { return h(Chip, {key:opt,label:opt,selected:drinks.indexOf(opt)!==-1,onClick:function(){toggleItem(drinks,setDrinks,opt);}}); }),
+                h(Chip, {label:"Other",selected:showOtherDrink,onClick:function(){setShowOtherDrink(!showOtherDrink);}})
+              ),
+              showOtherDrink ? h("input", {type:"text",placeholder:"Please specify...",value:drinkOther,onChange:function(e){setDrinkOther(e.target.value);},style:inputStyle}) : null
+            ),
+            // Dates
+            h(Section, {title:"Which dates work for you?",subtitle:"Select all that work"},
+              h("div", {style:{display:"flex",flexDirection:"column",gap:"8px"}},
+                DATE_OPTIONS.map(function(opt) {
+                  return h(DateChip, {key:opt,label:opt,selected:dates.indexOf(opt)!==-1,onClick:function(){
+                    if (opt === "Can't make it") {
+                      if (dates.indexOf(opt) !== -1) setDates([]);
+                      else { setDates(["Can't make it"]); setGames([]); }
+                    } else {
+                      var filtered = dates.filter(function(d){return d!=="Can't make it";});
+                      if (filtered.indexOf(opt) !== -1) setDates(filtered.filter(function(d){return d!==opt;}));
+                      else setDates(filtered.concat([opt]));
+                    }
+                  }});
+                })
+              )
+            ),
+            // Games
+            !cantMakeIt && dates.length > 0 ? h(Section, {title:"Pick Your Poison \uD83C\uDFAF",subtitle:"Pick your top 4 games"},
+              h("div", {style:{display:"flex",flexDirection:"column",gap:"8px"}},
+                GAME_OPTIONS.map(function(opt) {
+                  return h(DateChip, {key:opt,label:opt,selected:games.indexOf(opt)!==-1,onClick:function(){
+                    if (games.indexOf(opt) !== -1) setGames(games.filter(function(g){return g!==opt;}));
+                    else if (games.length < 4) setGames(games.concat([opt]));
+                  }});
+                })
+              ),
+              games.length > 0 && games.length < 4 ? h("p", {style:{margin:"8px 0 0",fontSize:"12px",color:"#6e7681"}}, (4-games.length)+" more to go") : null
+            ) : null,
+            // Submit
+            h("button", {onClick:handleSubmit, disabled:!canSubmit, style:submitStyleFn(canSubmit)}, submitLabel)
+          ) : null,
+
+          // Submitted confirmation
+          view === "survey" && submitted ? h("div", {style:{textAlign:"center",padding:"60px 20px"}},
+            h("div", {style:{fontSize:"56px",marginBottom:"16px"}}, cantMakeIt ? "\uD83D\uDE22" : "\uD83C\uDF89"),
+            h("h2", {style:{margin:"0 0 8px",fontSize:"22px",fontWeight:700,color:"#f97316"}},
+              cantMakeIt ? "We'll miss you, "+person.name+"." : "You're locked in, "+person.name+"!"
+            ),
+            h("p", {style:{color:"#8b949e",fontSize:"15px",margin:0}},
+              cantMakeIt ? "If anything changes, let us know." : "We'll let you know the final date soon. See you there."
+            )
+          ) : null,
+
+          // Results
+          view === "results" ? h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey}) : null
+        )
+      );
+    }
+
+    ReactDOM.render(h(App), document.getElementById("root"));
+  </script>
+</body>
+</html>
