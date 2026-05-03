@@ -87,7 +87,7 @@
     function InfoBar() {
       return h("div", {style:{maxWidth:500,margin:"0 auto",padding:"12px 20px 0"}},
         h("div", {style:{background:"rgba(249,115,22,0.08)",border:"1px solid rgba(249,115,22,0.2)",borderRadius:"12px",padding:"12px 16px",fontSize:"13px",color:"#c9d1d9",lineHeight:1.6}},
-          h("p", {style:{margin:"0 0 6px",fontWeight:700,color:"#fb923c"}}, "\uD83D\uDCCD 196 Pruitt Dr, Crawfordville, FL 32327"),
+          h("a", {href:"https://www.google.com/maps/search/?api=1&query=196+Pruitt+Dr+Crawfordville+FL+32327",target:"_blank",style:{margin:"0 0 6px",fontWeight:700,color:"#fb923c",textDecoration:"none",display:"block"}}, "\uD83D\uDCCD 196 Pruitt Dr, Crawfordville, FL 32327"),
           h("p", {style:{margin:0,color:"#8b949e"}}, "\uD83D\uDE97 Try to carpool if you can. Coordinate with each other and pull up together.")
         )
       );
@@ -162,7 +162,10 @@
           h("h3", {style:{margin:"0 0 10px",fontSize:"14px",fontWeight:700,color:"#e6edf3"}}, "\uD83D\uDCCB Individual Responses"),
           props.responses.map(function(r, i) {
             return h("div", {key:i, style:Object.assign({},cardStyle,{marginBottom:"8px",padding:"14px"})},
-              h("p", {style:{margin:"0 0 6px",fontSize:"14px",fontWeight:700,color:"#fb923c"}}, r.person),
+              h("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}},
+                h("p", {style:{margin:0,fontSize:"14px",fontWeight:700,color:"#fb923c"}}, r.person),
+                r._id ? h("button", {onClick:function(){props.deleteResponse(r._id);}, style:{background:"none",border:"none",color:"#f87171",fontSize:"12px",fontWeight:600,cursor:"pointer",padding:"2px 6px"}}, "\u2715 Remove") : null
+              ),
               h("p", {style:{margin:"0 0 2px",fontSize:"12px",color:"#8b949e"}},
                 h("strong", {style:{color:"#c9d1d9"}}, "Dietary: "), r.dietary && r.dietary.length ? r.dietary.join(", ") : "None listed"
               ),
@@ -233,16 +236,23 @@
         };
         db.collection("responses").add(response).then(function() {
           setSubmitted(true);
+          setAlreadyResponded(true);
         }).catch(function(e) { console.error("Error saving:", e); });
       }
 
       function loadResponses() {
         setLoading(true);
         db.collection("responses").orderBy("timestamp").get().then(function(snapshot) {
-          var data = snapshot.docs.map(function(doc) { return doc.data(); });
+          var data = snapshot.docs.map(function(doc) { var d = doc.data(); d._id = doc.id; return d; });
           setResponses(data);
           setLoading(false);
         }).catch(function() { setResponses([]); setLoading(false); });
+      }
+
+      function deleteResponse(id) {
+        db.collection("responses").doc(id).delete().then(function() {
+          setResponses(responses.filter(function(r) { return r._id !== id; }));
+        }).catch(function(e) { console.error("Error deleting:", e); });
       }
 
       function resetSurvey() {
@@ -254,6 +264,16 @@
       }
 
       useEffect(function() { if (view === "results") loadResponses(); }, [view]);
+
+      // Check if person already responded
+      var _ar = useState(false); var alreadyResponded = _ar[0]; var setAlreadyResponded = _ar[1];
+      useEffect(function() {
+        if (person) {
+          db.collection("responses").where("person", "==", person.name).get().then(function(snapshot) {
+            setAlreadyResponded(!snapshot.empty);
+          }).catch(function() { setAlreadyResponded(false); });
+        }
+      }, [personKey]);
 
       function tallyItems(key) {
         var counts = {};
@@ -315,7 +335,7 @@
           h(InfoBar, null),
           renderToggle(),
           h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
-            h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey})
+            h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey, deleteResponse:deleteResponse})
           )
         );
       }
@@ -339,7 +359,7 @@
         ),
         h("div", {style:{padding:"12px 20px 40px",maxWidth:500,margin:"0 auto"}},
           // Survey form
-          view === "survey" && !submitted ? h("div", null,
+          view === "survey" && !submitted && !alreadyResponded ? h("div", null,
             // Invite message
             h("div", {style:Object.assign({},cardStyle,{marginBottom:"24px"})},
               h("p", {style:{margin:"0 0 16px",fontSize:"20px",fontWeight:800,color:"#f97316"}}, person.name + ", you're invited. " + person.emoji),
@@ -406,8 +426,19 @@
             )
           ) : null,
 
+          // Already responded
+          view === "survey" && !submitted && alreadyResponded ? h("div", {style:{textAlign:"center",padding:"60px 20px"}},
+            h("div", {style:{fontSize:"56px",marginBottom:"16px"}}, "\u2705"),
+            h("h2", {style:{margin:"0 0 8px",fontSize:"22px",fontWeight:700,color:"#f97316"}},
+              "You already responded, "+person.name+"!"
+            ),
+            h("p", {style:{color:"#8b949e",fontSize:"15px",margin:0}},
+              "We've got your answers. See you on game night."
+            )
+          ) : null,
+
           // Results
-          view === "results" ? h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey}) : null
+          view === "results" ? h(ResultsView, {loading:loading, responses:responses, totalResponses:totalResponses, respondedNames:respondedNames, tallyItems:tallyItems, resetSurvey:resetSurvey, deleteResponse:deleteResponse}) : null
         )
       );
     }
