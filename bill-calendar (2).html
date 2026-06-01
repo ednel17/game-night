@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0f7a6b">
+<title>Bill Pay Calendar</title>
+<script>
+  /* Set theme before first paint to avoid a flash. Mirrors STORAGE_KEY below. */
+  try {
+    var __s = JSON.parse(localStorage.getItem('billpay.v2'));
+    var __t = __s && __s.settings && __s.settings.theme;
+    if (__t === 'dark' || __t === 'light') document.documentElement.dataset.theme = __t;
+    else if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+  } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f3f1ec;
+    --surface: #ffffff;
+    --surface-2: #faf9f6;
+    --surface-3: #eeece6;
+    --ink: #181d28;
+    --ink-2: #535b6b;
+    --ink-3: #8a91a1;
+    --line: rgba(20,25,40,0.09);
+    --line-2: rgba(20,25,40,0.15);
+    --brand: #0f7a6b;
+    --brand-soft: #e2f2ee;
+    --brand-ink: #0a5246;
+    --income: #15803d;
+    --income-soft: #e6f4ea;
+    --income-ink: #115e2b;
+    --warn: #b45309;
+    --warn-soft: #fbf0df;
+    --danger: #be123c;
+    --danger-soft: #fce6ec;
+
+    --cat-housing: #c2410c;        --cat-housing-bg: #fbeadf;  --cat-housing-ink: #7c3008;
+    --cat-insurance: #1d4ed8;      --cat-insurance-bg: #e6ecfb; --cat-insurance-ink: #15348f;
+    --cat-utilities: #0e7490;      --cat-utilities-bg: #e0f0f4; --cat-utilities-ink: #0a4d60;
+    --cat-debt: #be123c;           --cat-debt-bg: #fce6ec;     --cat-debt-ink: #86102e;
+    --cat-subscriptions: #7c3aed;  --cat-subscriptions-bg: #eee6fc; --cat-subscriptions-ink: #54219e;
+    --cat-other: #64748b;          --cat-other-bg: #eef1f4;    --cat-other-ink: #414b5a;
+
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.05);
+    --shadow-md: 0 6px 22px rgba(16,24,40,.08), 0 2px 6px rgba(16,24,40,.04);
+    --shadow-lg: 0 28px 70px rgba(16,24,40,.24), 0 8px 24px rgba(16,24,40,.14);
+
+    --radius: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
+    --font: 'Hanken Grotesk', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0d121a;
+    --surface: #161d27;
+    --surface-2: #1b2330;
+    --surface-3: #11161f;
+    --ink: #e9edf4;
+    --ink-2: #a6aebd;
+    --ink-3: #6e7787;
+    --line: rgba(255,255,255,0.08);
+    --line-2: rgba(255,255,255,0.15);
+    --brand: #2dd4bf;
+    --brand-soft: #0d2b27;
+    --brand-ink: #99f6e4;
+    --income: #34d399;
+    --income-soft: #0e2a1c;
+    --income-ink: #86efac;
+    --warn: #f59e0b;
+    --warn-soft: #2a1f0a;
+    --danger: #fb7185;
+    --danger-soft: #38131f;
+
+    --cat-housing: #fb923c;        --cat-housing-bg: #36190a;  --cat-housing-ink: #fdcba0;
+    --cat-insurance: #60a5fa;      --cat-insurance-bg: #102244; --cat-insurance-ink: #b3cdfb;
+    --cat-utilities: #22b8cf;      --cat-utilities-bg: #0a2932; --cat-utilities-ink: #9fe1ec;
+    --cat-debt: #fb7185;           --cat-debt-bg: #34101c;     --cat-debt-ink: #fbb8c6;
+    --cat-subscriptions: #a78bfa;  --cat-subscriptions-bg: #221143; --cat-subscriptions-ink: #d4c4fb;
+    --cat-other: #94a3b8;          --cat-other-bg: #1b2530;    --cat-other-ink: #cdd5e0;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-md: 0 8px 28px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.4);
+    --shadow-lg: 0 30px 80px rgba(0,0,0,.7), 0 10px 30px rgba(0,0,0,.55);
+  }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+  /* Atmosphere: faint warm glow + grain, kept very subtle */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(1100px 600px at 12% -8%, color-mix(in srgb, var(--brand) 9%, transparent), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--cat-subscriptions) 7%, transparent), transparent 55%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: .025; pointer-events: none; z-index: 0; mix-blend-mode: overlay;
+  }
+
+  .app { max-width: 1080px; margin: 0 auto; padding: 22px 18px 8px; position: relative; z-index: 1; }
+
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 13px; flex: 1; min-width: 0; }
+  .brand-mark {
+    width: 46px; height: 46px; flex-shrink: 0;
+    display: grid; place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(150deg, var(--brand), color-mix(in srgb, var(--brand) 65%, #000 12%));
+    color: #fff; font-size: 24px;
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  :root[data-theme="dark"] .brand-mark { color: #07211d; }
+  .brand-txt { min-width: 0; }
+  .brand-txt h1 { font-family: var(--font-display); font-size: 25px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.05; }
+  .brand-txt p { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-actions { display: flex; align-items: center; gap: 9px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: var(--font); font-size: 13.5px; font-weight: 600;
+    padding: 9px 15px; border-radius: var(--radius);
+    border: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
+    cursor: pointer; white-space: nowrap; line-height: 1;
+    transition: transform .12s ease, background .15s, border-color .15s, box-shadow .15s, opacity .15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn i { font-size: 16px; }
+  .btn:hover { background: var(--surface-2); border-color: var(--line-2); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary {
+    background: linear-gradient(150deg, var(--brand), color-mix(in srgb, var(--brand) 72%, #000 8%));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 35%, transparent), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  :root[data-theme="dark"] .btn.primary { color: #06231f; }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.ghost { background: transparent; box-shadow: none; border-color: var(--line-2); }
+  .btn.ghost:hover { background: var(--surface); }
+  .btn.sm { padding: 7px 12px; font-size: 12.5px; }
+
+  .icon-btn {
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: grid; place-items: center;
+    border-radius: var(--radius); border: 1px solid var(--line-2);
+    background: var(--surface); color: var(--ink-2); cursor: pointer;
+    font-size: 18px; transition: transform .12s, background .15s, color .15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .icon-btn:active { transform: translateY(1px); }
+
+  /* ---------- KPI cards ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius-lg); padding: 15px 16px;
+    box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+    animation: rise .5s both;
+  }
+  .kpi::after { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--accent, var(--brand)); opacity:.85; }
+  .kpi-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: .2px; display: flex; align-items: center; gap: 5px; }
+  .kpi-label i { font-size: 13px; }
+  .kpi-val { font-family: var(--font-display); font-size: 27px; font-weight: 700; letter-spacing: -0.6px; margin-top: 6px; line-height: 1; }
+  .kpi-val.num { font-family: var(--font-mono); font-weight: 700; font-size: 25px; }
+  .kpi-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 6px; }
+  .pos { color: var(--income); } .neg { color: var(--danger); } .caution { color: var(--warn); }
+
+  /* ---------- Month bar ---------- */
+  .month-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .nav-btn {
+    width: 38px; height: 38px; display: grid; place-items: center;
+    border-radius: var(--radius); border: 1px solid var(--line-2);
+    background: var(--surface); color: var(--ink); cursor: pointer; font-size: 19px;
+    transition: background .15s, transform .12s; box-shadow: var(--shadow-sm);
+  }
+  .nav-btn:hover { background: var(--surface-2); }
+  .nav-btn:active { transform: translateY(1px); }
+  .month-title { font-family: var(--font-display); font-size: 21px; font-weight: 700; letter-spacing: -0.4px; min-width: 188px; text-align: center; }
+
+  /* ---------- Legend ---------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-bottom: 12px; padding: 0 3px; }
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); font-weight: 500; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .leg-dot.ring { background: transparent; border: 2px solid var(--brand); }
+
+  /* ---------- Calendar ---------- */
+  .cal-card { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--line); overflow: hidden; box-shadow: var(--shadow-md); margin-bottom: 16px; }
+  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .weekday-label { text-align: center; padding: 11px 0; font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: 1px; text-transform: uppercase; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .cal-cell {
+    border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    min-height: 104px; padding: 7px 6px 6px; background: var(--surface);
+    position: relative; cursor: pointer;
+    transition: background .12s; animation: cellIn .42s both; animation-delay: calc(var(--i, 0) * 7ms);
+  }
+  .cal-cell:hover { background: var(--surface-2); }
+  .cal-cell:nth-child(7n) { border-right: none; }
+  .cal-grid > .cal-cell:nth-last-child(-n+7) { border-bottom: none; }
+  .cal-cell.other-month { background: var(--surface-3); cursor: default; }
+  .cal-cell.other-month:hover { background: var(--surface-3); }
+  .cal-cell.other-month .day-num { color: var(--ink-3); opacity: .55; }
+  .cal-cell.today { background: color-mix(in srgb, var(--brand) 7%, var(--surface)); box-shadow: inset 0 0 0 2px var(--brand); border-radius: 6px; }
+  .cal-cell.payday { background: color-mix(in srgb, var(--income) 8%, var(--surface)); }
+  .cal-cell.payday:hover { background: color-mix(in srgb, var(--income) 13%, var(--surface)); }
+  .cal-cell.drag-over { background: var(--brand-soft); box-shadow: inset 0 0 0 2px var(--brand); border-radius: 6px; }
+
+  .day-num { font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; line-height: 1; min-height: 17px; }
+  .day-num .dn { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; }
+  .cal-cell.today .day-num .dn { background: var(--brand); color: #fff; border-radius: 50%; width: 19px; height: 19px; font-size: 11.5px; }
+  :root[data-theme="dark"] .cal-cell.today .day-num .dn { color: #06231f; }
+  .pay-tag { margin-left: auto; font-size: 9.5px; font-weight: 700; background: var(--income-soft); color: var(--income-ink); border: 1px solid color-mix(in srgb, var(--income) 45%, transparent); border-radius: 5px; padding: 1.5px 5px; display: inline-flex; align-items: center; gap: 3px; letter-spacing: .3px; }
+  .pay-tag i { font-size: 10px; }
+
+  .chips { display: flex; flex-direction: column; gap: 2px; }
+  .bill-chip {
+    font-size: 10.5px; border-radius: 5px; padding: 2.5px 5px;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+    border: 1px solid transparent; line-height: 1.3; user-select: none;
+    transition: transform .1s, box-shadow .12s, opacity .12s;
+  }
+  .bill-chip:hover { box-shadow: var(--shadow-sm); transform: translateX(1px); }
+  .bill-chip:active { cursor: grabbing; }
+  .bill-chip.dragging { opacity: .35; }
+  .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-weight: 600; }
+  .chip-shift { font-size: 8.5px; opacity: .7; font-weight: 700; flex-shrink: 0; }
+  .chip-amt { font-weight: 700; flex-shrink: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .del-btn { flex-shrink: 0; cursor: pointer; font-size: 11px; opacity: 0; border: none; background: none; color: inherit; padding: 0 0 0 1px; line-height: 1; transition: opacity .15s; }
+  .bill-chip:hover .del-btn { opacity: .65; }
+  .del-btn:hover { opacity: 1 !important; }
+
+  .more-chip { font-size: 10px; color: var(--ink-3); padding: 2px 3px; font-weight: 600; cursor: pointer; border-radius: 4px; }
+  .more-chip:hover { color: var(--brand); background: var(--brand-soft); }
+  .add-hint { font-size: 10px; color: var(--ink-3); cursor: pointer; padding: 2px 4px; border-radius: 5px; margin-top: 2px; border: 1px dashed var(--line-2); text-align: center; display: none; font-weight: 600; }
+  .cal-cell:hover .add-hint { display: block; }
+  .add-hint:hover { color: var(--brand); background: var(--brand-soft); border-color: var(--brand); }
+
+  .cat-housing       { background: var(--cat-housing-bg);       color: var(--cat-housing-ink);       border-color: color-mix(in srgb, var(--cat-housing) 50%, transparent); }
+  .cat-insurance     { background: var(--cat-insurance-bg);     color: var(--cat-insurance-ink);     border-color: color-mix(in srgb, var(--cat-insurance) 50%, transparent); }
+  .cat-utilities     { background: var(--cat-utilities-bg);     color: var(--cat-utilities-ink);     border-color: color-mix(in srgb, var(--cat-utilities) 50%, transparent); }
+  .cat-debt          { background: var(--cat-debt-bg);          color: var(--cat-debt-ink);          border-color: color-mix(in srgb, var(--cat-debt) 50%, transparent); }
+  .cat-subscriptions { background: var(--cat-subscriptions-bg); color: var(--cat-subscriptions-ink); border-color: color-mix(in srgb, var(--cat-subscriptions) 50%, transparent); }
+  .cat-other         { background: var(--cat-other-bg);         color: var(--cat-other-ink);         border-color: color-mix(in srgb, var(--cat-other) 50%, transparent); }
+
+  /* ---------- Banner ---------- */
+  .banner {
+    background: linear-gradient(120deg, var(--income-soft), color-mix(in srgb, var(--income-soft) 60%, var(--surface)));
+    border: 1px solid color-mix(in srgb, var(--income) 35%, transparent);
+    border-radius: var(--radius-lg); padding: 12px 16px; font-size: 13px; color: var(--income-ink);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; box-shadow: var(--shadow-sm);
+  }
+  .banner > i { font-size: 17px; }
+  .pay-badge { background: var(--income); color: #fff; border-radius: 7px; padding: 3px 9px; font-size: 12px; font-weight: 700; font-family: var(--font-mono); }
+  :root[data-theme="dark"] .pay-badge { color: #06231f; }
+  .banner-meta { color: color-mix(in srgb, var(--income-ink) 80%, var(--ink-2)); font-size: 12px; }
+
+  /* ---------- Panels ---------- */
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-xl); padding: 18px 20px; margin-bottom: 16px; box-shadow: var(--shadow-md); }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
+  .panel-head h3 { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
+  .panel-head h3 i { font-size: 17px; color: var(--brand); }
+  .panel-sub { font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- Pay-period cards ---------- */
+  .periods { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .period { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 15px; background: var(--surface-2); display: flex; flex-direction: column; gap: 11px; }
+  .period.carryin { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .period-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pay-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--income-ink); background: var(--income-soft); border: 1px solid color-mix(in srgb, var(--income) 40%, transparent); padding: 4px 9px; border-radius: 8px; }
+  .pay-chip i { font-size: 13px; }
+  .pay-chip.ghost { color: var(--warn); background: transparent; border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .pay-amt { font-family: var(--font-mono); font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .pay-amt.income { color: var(--income); }
+  .cover-bar { height: 7px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 9%, transparent); overflow: hidden; }
+  .cover-fill { height: 100%; border-radius: 99px; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .cover-fill.good { background: var(--income); }
+  .cover-fill.tight { background: var(--warn); }
+  .cover-fill.over { background: var(--danger); }
+  .period-foot { display: flex; align-items: center; justify-content: space-between; font-size: 12px; gap: 8px; }
+  .period-foot .lbl { color: var(--ink-3); }
+  .leftover { font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .leftover.good { color: var(--income); } .leftover.tight { color: var(--warn); } .leftover.over { color: var(--danger); }
+  .period-bills { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--line-2); padding-top: 10px; }
+  .pb { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .pb-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .pb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+  .pb-amt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+  .pb-empty { font-size: 12px; color: var(--ink-3); font-style: italic; }
+  .carry-note { font-size: 12px; color: var(--warn); line-height: 1.45; }
+  .carry-note b { font-weight: 700; }
+  .pc-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; border-radius: 4px; padding: 1px 5px; vertical-align: middle; }
+  .pc-tag.edit { color: var(--ink-2); background: var(--surface-3); border: 1px solid var(--line); }
+  .pc-tag.extra { color: var(--income-ink); background: var(--income-soft); border: 1px solid color-mix(in srgb, var(--income) 35%, transparent); }
+  .paid-foot { display: flex; align-items: center; gap: 12px; font-size: 11.5px; margin: 2px 0 0; }
+  .pf-paid { color: var(--income); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .pf-left { color: var(--warn); font-weight: 700; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .pf-left.clear { color: var(--income); }
+
+  /* ---------- Bill list ---------- */
+  .bill-list { display: flex; flex-direction: column; gap: 5px; }
+  .bill-row {
+    display: flex; align-items: center; gap: 11px; padding: 9px 13px;
+    border-radius: var(--radius); border: 1px solid var(--line); font-size: 13.5px;
+    cursor: pointer; background: var(--surface); user-select: none;
+    transition: background .12s, border-color .12s, transform .1s;
+  }
+  .bill-row:hover { background: var(--surface-2); border-color: var(--line-2); transform: translateX(2px); }
+  .bill-row:active { cursor: grabbing; }
+  .row-cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .row-name { flex: 1; min-width: 0; font-weight: 600; }
+  .row-name .nm { display: flex; align-items: center; gap: 6px; }
+  .row-cat { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .3px; }
+  .row-note { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; font-weight: 400; }
+  .row-day { color: var(--ink-2); font-size: 12.5px; min-width: 46px; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .row-amt { font-weight: 700; min-width: 72px; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; }
+  .row-del { cursor: pointer; color: var(--ink-3); border: none; background: none; font-size: 17px; padding: 2px 4px; line-height: 1; transition: color .15s; flex-shrink: 0; border-radius: 6px; }
+  .row-del:hover { color: var(--danger); background: var(--danger-soft); }
+  .list-total { display: flex; align-items: center; justify-content: space-between; margin-top: 13px; padding-top: 13px; border-top: 1.5px solid var(--line-2); font-size: 14px; }
+  .list-total .lt-label { font-weight: 600; color: var(--ink-2); }
+  .list-total .lt-val { font-family: var(--font-mono); font-weight: 700; font-size: 19px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Footer ---------- */
+  .footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 4px 30px; font-size: 12px; color: var(--ink-3); position: relative; z-index: 1; }
+  .save-state { display: inline-flex; align-items: center; gap: 6px; }
+  .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--income); box-shadow: 0 0 0 3px color-mix(in srgb, var(--income) 22%, transparent); }
+  .save-dot.off { background: var(--ink-3); box-shadow: none; }
+  .footer-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+  .link-btn { background: none; border: none; color: var(--ink-2); font-family: var(--font); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 6px 9px; border-radius: 7px; display: inline-flex; align-items: center; gap: 5px; transition: background .15s, color .15s; }
+  .link-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .link-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
+  .link-btn i { font-size: 14px; }
+
+  /* ---------- Sheets / modals ---------- */
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(10,14,22,.5); backdrop-filter: blur(3px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 18px; }
+  .sheet-overlay.open { display: flex; animation: fade .2s ease; }
+  .sheet { background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--line-2); padding: 24px; width: 100%; max-width: 460px; box-shadow: var(--shadow-lg); max-height: 92vh; overflow-y: auto; animation: pop .26s cubic-bezier(.2,.8,.25,1); }
+  .sheet-confirm { max-width: 400px; }
+  .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .sheet-head h3 { font-family: var(--font-display); font-size: 19px; font-weight: 700; letter-spacing: -.3px; }
+  .sheet-head .sub { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+  .x-btn { width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; border: none; background: var(--surface-2); color: var(--ink-2); cursor: pointer; font-size: 16px; display: grid; place-items: center; transition: background .15s, color .15s; }
+  .x-btn:hover { background: var(--surface-3); color: var(--ink); }
+
+  .form-grid { display: grid; gap: 13px; margin-bottom: 14px; }
+  .cols3 { grid-template-columns: 1.7fr 1fr 1fr; }
+  .cols2 { grid-template-columns: 1fr 1fr; }
+  .field label { display: block; font-size: 11.5px; color: var(--ink-2); margin-bottom: 5px; font-weight: 600; }
+  input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--radius); font-size: 14px; background: var(--surface); color: var(--ink); font-family: var(--font); transition: border-color .15s, box-shadow .15s; }
+  input::placeholder { color: var(--ink-3); }
+  input:focus, select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+  .input-money { position: relative; }
+  .input-money input { padding-left: 24px; font-family: var(--font-mono); }
+  .input-money::before { content: "$"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-family: var(--font-mono); font-size: 14px; pointer-events: none; }
+  .field-hint { font-size: 11.5px; color: var(--ink-3); margin: -4px 0 12px; min-height: 16px; line-height: 1.4; }
+  .field-hint.warn { color: var(--warn); }
+  .sheet-actions { display: flex; gap: 9px; margin-top: 6px; align-items: center; }
+  .spacer { flex: 1; }
+
+  /* Day sheet */
+  .day-payday { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; background: var(--income-soft); color: var(--income-ink); border: 1px solid color-mix(in srgb, var(--income) 40%, transparent); border-radius: var(--radius); padding: 11px 13px; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+  .day-payday i { font-size: 18px; vertical-align: -3px; }
+  .dp-est { font-weight: 500; opacity: .75; }
+  .day-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .day-empty { font-size: 13px; color: var(--ink-3); text-align: center; padding: 14px; font-style: italic; }
+  .day-total { display: flex; justify-content: space-between; font-size: 13px; padding: 10px 2px 0; border-top: 1px dashed var(--line-2); margin-top: 2px; }
+  .day-total b { font-family: var(--font-mono); }
+
+  /* Settings */
+  .seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+  @media (min-width: 420px) { .seg { grid-template-columns: repeat(4, 1fr); } }
+  .seg label { display: block; cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; text-align: center; padding: 9px 6px; border: 1px solid var(--line-2); border-radius: var(--radius); font-size: 12.5px; font-weight: 600; color: var(--ink-2); transition: all .15s; background: var(--surface); }
+  .seg input:checked + span { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-ink); }
+  .cond { display: none; } .cond.show { display: block; }
+
+  @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes cellIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  .kpi:nth-child(1){animation-delay:.02s}.kpi:nth-child(2){animation-delay:.07s}.kpi:nth-child(3){animation-delay:.12s}.kpi:nth-child(4){animation-delay:.17s}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 720px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .brand-txt p { display: none; }
+  }
+  @media (max-width: 560px) {
+    .app { padding: 16px 12px 8px; }
+    .topbar-actions .btn span { display: none; }
+    .topbar-actions .btn { padding: 9px 11px; }
+    .cal-cell { min-height: 74px; padding: 5px 4px; }
+    .bill-chip { font-size: 9.5px; padding: 2px 4px; }
+    .chip-amt { display: none; }
+    .add-hint { display: none !important; }
+    .month-title { min-width: 0; font-size: 19px; }
+    .brand-txt h1 { font-size: 21px; }
+    .cols3 { grid-template-columns: 1fr 1fr; }
+    .cols3 .field:first-child { grid-column: 1 / -1; }
+    .today-text { display: none; }
+    .row-cat { display: none; }
+  }
+
+  /* ============ New components ============ */
+
+  /* Today / safe-to-spend strip */
+  .today-strip {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--brand);
+    border-radius: var(--radius-lg); padding: 11px 15px; margin-bottom: 18px; box-shadow: var(--shadow-sm);
+  }
+  .today-strip.hide { display: none; }
+  .ts-block { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-2); }
+  .ts-block i { font-size: 17px; opacity: .8; }
+  .ts-block.warn i { color: var(--warn); }
+  .ts-block.safe i { color: var(--income); }
+  .ts-block b { color: var(--ink); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .ts-block .big { font-size: 15px; }
+  .ts-block.safe b { color: var(--income); }
+  .ts-sub { color: var(--ink-3); }
+  .ts-link { background: none; border: none; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+
+  /* Balance projection panel */
+  .balance-panel { display: block; }
+  .bp-grid { display: grid; grid-template-columns: auto 1fr; gap: 18px 22px; align-items: center; }
+  .bp-metric { display: flex; flex-direction: column; gap: 3px; }
+  .bp-metric .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
+  .bp-metric .val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .bp-metric .val.neg { color: var(--danger); } .bp-metric .val.pos { color: var(--income); } .bp-metric .val.warn { color: var(--warn); }
+  .bp-metric .sub { font-size: 12px; color: var(--ink-2); }
+  .bp-spark { width: 100%; min-width: 160px; }
+  .bp-spark svg { width: 100%; height: 64px; display: block; overflow: visible; }
+  .bp-foot { margin-top: 14px; display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 10px 13px; border-radius: var(--radius); line-height: 1.4; }
+  .bp-foot.danger { background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); }
+  .bp-foot.ok { background: var(--income-soft); color: var(--income-ink); border: 1px solid color-mix(in srgb, var(--income) 30%, transparent); }
+  .bp-foot.muted { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+  .bp-foot i { font-size: 17px; flex-shrink: 0; }
+  .bp-empty { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+  .bp-empty .txt { font-size: 13.5px; color: var(--ink-2); flex: 1; min-width: 180px; line-height: 1.45; }
+  .bp-empty .txt b { color: var(--ink); }
+
+  /* Category breakdown */
+  .cat-breakdown { margin-bottom: 16px; }
+  .cat-breakdown.hide { display: none; }
+  .cb-bar { display: flex; height: 11px; border-radius: 999px; overflow: hidden; background: var(--surface-3); border: 1px solid var(--line); }
+  .cb-seg { height: 100%; }
+  .cb-seg + .cb-seg { border-left: 1.5px solid var(--surface); }
+  .cb-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 11px; }
+  .cb-item { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); }
+  .cb-item .dot { width: 9px; height: 9px; border-radius: 3px; }
+  .cb-item b { color: var(--ink); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .cb-item .pct { color: var(--ink-3); }
+
+  /* Paid toggles */
+  .paid-toggle, .pb-check {
+    flex-shrink: 0; border: 1.6px solid var(--line-2); background: transparent; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+    transition: background .14s ease, border-color .14s ease, transform .1s ease;
+  }
+  .paid-toggle { width: 22px; height: 22px; }
+  .pb-check { width: 18px; height: 18px; }
+  .paid-toggle i, .pb-check i { color: #fff; opacity: 0; transition: opacity .14s ease; }
+  .paid-toggle i { font-size: 13px; } .pb-check i { font-size: 11px; }
+  .paid-toggle:hover, .pb-check:hover { border-color: var(--income); }
+  .paid-toggle:active { transform: scale(.9); }
+  .paid-toggle.on, .pb-check.on { background: var(--income); border-color: var(--income); }
+  .paid-toggle.on i, .pb-check.on i { opacity: 1; }
+
+  .bill-row.paid .nm { text-decoration: line-through; text-decoration-color: var(--ink-3); color: var(--ink-3); }
+  .bill-row.paid .row-amt { color: var(--ink-3); }
+  .bill-row.paid .row-cat-dot { opacity: .4; }
+  .pb.paid { opacity: .6; }
+  .pb.paid .pb-name { text-decoration: line-through; }
+  .bill-chip.paid { opacity: .5; }
+  .bill-chip.paid .chip-name { text-decoration: line-through; }
+
+  /* Autopay badge */
+  .autopay-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); background: var(--surface-3); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; vertical-align: middle; }
+  .autopay-badge i { font-size: 10px; }
+  .chip-auto { font-size: 9px; color: var(--income); margin-left: 2px; }
+
+  /* Calendar one-off income chip */
+  .income-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 700; color: var(--income-ink); background: var(--income-soft); border: 1px solid color-mix(in srgb, var(--income) 40%, transparent); border-radius: 5px; padding: 1.5px 5px; max-width: 100%; }
+  .income-chip i { font-size: 10px; }
+
+  /* Day sheet: income editor */
+  .day-income { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 13px; margin-bottom: 14px; }
+  .day-income .di-title { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+  .di-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
+  .di-item + .di-item { border-top: 1px solid var(--line); }
+  .di-item .nm { flex: 1; color: var(--ink); }
+  .di-item .amt { font-family: var(--font-mono); color: var(--income); font-weight: 600; }
+  .di-item .x { background: none; border: none; color: var(--ink-3); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 6px; }
+  .di-item .x:hover { color: var(--danger); background: var(--danger-soft); }
+  .di-add { display: grid; grid-template-columns: 92px 1fr auto; gap: 8px; margin-top: 10px; }
+  .di-add input { padding: 8px 10px; font-size: 13px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font-family: var(--font); width: 100%; }
+  .di-add .input-money input { padding-left: 22px; font-family: var(--font-mono); }
+  .di-add input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .di-add .btn { padding: 8px 12px; }
+  .dp-edit { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .dp-edit label { font-size: 12px; color: var(--income-ink); }
+  .dp-edit .input-money { flex: 0 0 auto; }
+  .dp-edit input { width: 110px; padding: 7px 10px 7px 22px; font-size: 13px; border: 1px solid color-mix(in srgb, var(--income) 35%, var(--line-2)); border-radius: 8px; background: var(--surface); color: var(--ink); font-family: var(--font-mono); }
+  .dp-edit input:focus { outline: none; border-color: var(--income); box-shadow: 0 0 0 3px var(--income-soft); }
+  .dp-edit .mini { background: none; border: none; color: var(--brand); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
+
+  /* Toggle switch (autopay) */
+  .switch-row { display: flex; align-items: center; gap: 12px; padding: 6px 0 2px; cursor: pointer; }
+  .switch { position: relative; flex-shrink: 0; width: 42px; height: 24px; }
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--line-2); transition: background .16s ease; }
+  .slider::before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .16s ease; }
+  .switch input:checked + .slider { background: var(--income); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  .switch input:focus-visible + .slider { box-shadow: 0 0 0 3px var(--brand-soft); }
+  .switch-txt b { display: block; font-size: 14px; color: var(--ink); }
+  .switch-txt span { font-size: 12px; color: var(--ink-3); }
+
+  .set-divider { height: 1px; background: var(--line); margin: 18px 0; }
+  .opt { color: var(--ink-3); font-weight: 400; font-size: .85em; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 38px 20px; border: 1.5px dashed var(--line-2); border-radius: var(--radius-lg); }
+  .empty-state .es-ic { font-size: 34px; color: var(--ink-3); margin-bottom: 8px; }
+  .empty-state h4 { font-family: var(--font-display); font-size: 18px; color: var(--ink); margin-bottom: 5px; font-weight: 600; }
+  .empty-state p { font-size: 13.5px; color: var(--ink-2); margin-bottom: 16px; max-width: 360px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+  .lt-sub { display: block; font-size: 12px; color: var(--ink-2); margin-top: 3px; font-weight: 500; }
+  .lt-sub b { font-family: var(--font-mono); }
+  .lt-sub .left-amt { color: var(--warn); } .lt-sub .left-amt.clear { color: var(--income); }
+
+  @media (max-width: 560px) {
+    .today-strip { gap: 8px; padding: 11px 13px; }
+    .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+    .bp-metric .val { font-size: 23px; }
+    .di-add { grid-template-columns: 1fr auto; }
+    .di-add input.di-amt { grid-column: 1 / -1; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    body::before, body::after { display: none; }
+    .topbar-actions, .month-bar .nav-btn, #today-btn, .footer, .add-hint, .del-btn { display: none !important; }
+    body { background: #fff; }
+    .panel, .cal-card, .kpi { box-shadow: none; border-color: #ccc; }
+    .cal-cell { min-height: 90px; }
+    .chip-amt { display: inline !important; }
+    .periods { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"><i class="ti ti-calendar-dollar" aria-hidden="true"></i></span>
+      <div class="brand-txt">
+        <h1>Bill Pay Calendar</h1>
+        <p id="brand-sub">Plan every bill around payday</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-theme" title="Toggle light / dark" aria-label="Toggle light or dark theme"><i class="ti ti-moon" aria-hidden="true"></i></button>
+      <button class="icon-btn" id="btn-settings" title="Pay schedule & income" aria-label="Pay schedule and income settings"><i class="ti ti-settings" aria-hidden="true"></i></button>
+      <button class="btn primary" id="btn-add"><i class="ti ti-plus" aria-hidden="true"></i><span>Add bill</span></button>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Monthly summary"></section>
+
+  <div id="today-strip" class="today-strip" role="status"></div>
+
+  <div class="month-bar">
+    <div class="month-nav">
+      <button class="nav-btn" id="prev" aria-label="Previous month"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+      <h2 id="month-title" class="month-title"></h2>
+      <button class="nav-btn" id="next" aria-label="Next month"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <button class="btn ghost sm" id="today-btn"><i class="ti ti-calendar-event" aria-hidden="true"></i><span class="today-text">Today</span></button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="cal-card">
+    <div class="weekdays">
+      <div class="weekday-label">Sun</div><div class="weekday-label">Mon</div><div class="weekday-label">Tue</div>
+      <div class="weekday-label">Wed</div><div class="weekday-label">Thu</div><div class="weekday-label">Fri</div><div class="weekday-label">Sat</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <div id="banner" class="banner" role="status"></div>
+
+  <section id="balance-panel" class="panel balance-panel"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3><i class="ti ti-coins" aria-hidden="true"></i> Cash flow by pay period</h3>
+      <span class="panel-sub" id="period-sub"></span>
+    </div>
+    <div class="periods" id="periods"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h3><i class="ti ti-list-details" aria-hidden="true"></i> All bills</h3>
+      <span class="panel-sub" id="bills-sub">Tap the circle to mark paid &middot; tap a row to edit</span>
+    </div>
+    <div id="cat-breakdown" class="cat-breakdown"></div>
+    <div class="bill-list" id="bill-list"></div>
+    <div class="list-total" id="list-total"></div>
+  </section>
+
+  <footer class="footer">
+    <span class="save-state" id="save-state"></span>
+    <div class="footer-actions">
+      <button class="link-btn" id="btn-export"><i class="ti ti-download" aria-hidden="true"></i> Export</button>
+      <button class="link-btn" id="btn-import"><i class="ti ti-upload" aria-hidden="true"></i> Import</button>
+      <button class="link-btn" id="btn-sample"><i class="ti ti-sparkles" aria-hidden="true"></i> Load sample</button>
+      <button class="link-btn danger" id="btn-blank"><i class="ti ti-eraser" aria-hidden="true"></i> Start blank</button>
+    </div>
+    <input type="file" id="import-file" accept="application/json" hidden>
+  </footer>
+</div>
+
+<!-- Bill add/edit sheet -->
+<div class="sheet-overlay" id="sheet-bill" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="bill-title">
+    <div class="sheet-head">
+      <div><h3 id="bill-title">Add bill</h3></div>
+      <button class="x-btn" data-close="sheet-bill" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div class="form-grid cols3">
+      <div class="field">
+        <label for="f-name">Bill name</label>
+        <input type="text" id="f-name" placeholder="e.g. Netflix" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-amt">Amount</label>
+        <div class="input-money"><input type="number" id="f-amt" placeholder="0" min="0" step="0.01" inputmode="decimal"></div>
+      </div>
+      <div class="field">
+        <label for="f-day">Due day</label>
+        <input type="number" id="f-day" placeholder="1" min="1" max="31" inputmode="numeric">
+      </div>
+    </div>
+    <div class="form-grid cols2">
+      <div class="field">
+        <label for="f-cat">Category</label>
+        <select id="f-cat">
+          <option value="housing">🏠 Housing</option>
+          <option value="insurance">🛡️ Insurance</option>
+          <option value="utilities">⚡ Utilities</option>
+          <option value="debt">💳 Debt / Credit</option>
+          <option value="subscriptions">🎵 Subscriptions</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-note">Note (optional)</label>
+        <input type="text" id="f-note" placeholder="e.g. auto-pay ~3rd" autocomplete="off">
+      </div>
+    </div>
+    <label class="switch-row" for="f-auto">
+      <span class="switch"><input type="checkbox" id="f-auto"><span class="slider"></span></span>
+      <span class="switch-txt"><b>Auto-pays automatically</b><span>Drafts on its own &mdash; harder to delay if money's tight</span></span>
+    </label>
+    <p class="field-hint" id="bill-coverage"></p>
+    <div class="sheet-actions">
+      <button class="btn primary" id="save-bill"><i class="ti ti-check" aria-hidden="true"></i> Save bill</button>
+      <button class="btn ghost" data-close="sheet-bill">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="del-bill" style="color:var(--danger);display:none"><i class="ti ti-trash" aria-hidden="true"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day detail sheet -->
+<div class="sheet-overlay" id="sheet-day" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="day-title">
+    <div class="sheet-head">
+      <div><h3 id="day-title">Day</h3><div class="sub" id="day-sub"></div></div>
+      <button class="x-btn" data-close="sheet-day" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+    <div id="day-payday-wrap"></div>
+    <div id="day-income-wrap"></div>
+    <div class="day-list" id="day-list"></div>
+    <div class="day-total" id="day-total"></div>
+    <div class="sheet-actions" style="margin-top:16px">
+      <button class="btn primary" id="day-add"><i class="ti ti-plus" aria-hidden="true"></i> Add a bill on this day</button>
+      <button class="btn ghost" data-close="sheet-day">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings sheet -->
+<div class="sheet-overlay" id="sheet-settings" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="set-title">
+    <div class="sheet-head">
+      <div><h3 id="set-title">Pay schedule &amp; income</h3><div class="sub">Used to map paychecks to the bills they cover.</div></div>
+      <button class="x-btn" data-close="sheet-settings" aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>
+
+    <div class="field" style="margin-bottom:14px">
+      <label>How often are you paid?</label>
+      <div class="seg" id="freq-seg">
+        <label><input type="radio" name="freq" value="weekly"><span>Weekly</span></label>
+        <label><input type="radio" name="freq" value="biweekly"><span>Every 2 wks</span></label>
+        <label><input type="radio" name="freq" value="semimonthly"><span>Twice / mo</span></label>
+        <label><input type="radio" name="freq" value="monthly"><span>Monthly</span></label>
+      </div>
+    </div>
+
+    <div class="cond" id="cond-anchor">
+      <div class="field" style="margin-bottom:14px">
+        <label for="s-anchor">A recent or upcoming payday</label>
+        <input type="date" id="s-anchor">
+        <p class="field-hint">Paydays repeat from this date. The day of week is taken from here.</p>
+      </div>
+    </div>
+
+    <div class="cond" id="cond-semi">
+      <div class="form-grid cols2" style="margin-bottom:6px">
+        <div class="field"><label for="s-semi1">First payday (day of month)</label><input type="number" id="s-semi1" min="1" max="31" inputmode="numeric"></div>
+        <div class="field"><label for="s-semi2">Second payday (day)</label><input type="number" id="s-semi2" min="1" max="31" inputmode="numeric"></div>
+      </div>
+      <p class="field-hint">Use 31 for "last day of the month."</p>
+    </div>
+
+    <div class="cond" id="cond-monthly">
+      <div class="field" style="margin-bottom:14px">
+        <label for="s-monthly">Payday (day of month)</label>
+        <input type="number" id="s-monthly" min="1" max="31" inputmode="numeric">
+        <p class="field-hint">Use 31 for "last day of the month."</p>
+      </div>
+    </div>
+
+    <div class="form-grid cols2">
+      <div class="field">
+        <label for="s-pay">Expected pay (per check)</label>
+        <div class="input-money"><input type="number" id="s-pay" min="0" step="1" inputmode="numeric"></div>
+      </div>
+      <div class="field">
+        <label for="s-label">Income label</label>
+        <input type="text" id="s-label" placeholder="e.g. Payroll" autocomplete="off">
+      </div>
+    </div>
+    <p class="field-hint">An estimate is fine &mdash; it powers the coverage bars and net figures.</p>
+
+    <div class="set-divider"></div>
+    <div class="form-grid cols2">
+      <div class="field">
+        <label for="s-balance">Current balance <span class="opt">(optional)</span></label>
+        <div class="input-money"><input type="number" id="s-balance" min="0" step="1" inputmode="decimal" placeholder="e.g. 850"></div>
+      </div>
+      <div class="field">
+        <label for="s-balance-date">As of</label>
+        <input type="date" id="s-balance-date">
+      </div>
+    </div>
+    <p class="field-hint">Enter what's in checking to project your balance day-by-day and get a heads-up before an overdraft.</p>
+
+    <div class="sheet-actions">
+      <button class="btn primary" id="save-settings"><i class="ti ti-check" aria-hidden="true"></i> Save</button>
+      <button class="btn ghost" data-close="sheet-settings">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm sheet -->
+<div class="sheet-overlay" id="sheet-confirm" aria-hidden="true">
+  <div class="sheet sheet-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="sheet-head"><div><h3 id="confirm-title">Are you sure?</h3></div></div>
+    <p id="confirm-msg" style="font-size:14px;color:var(--ink-2);margin-bottom:20px;line-height:1.5"></p>
+    <div class="sheet-actions">
+      <button class="btn" id="confirm-cancel">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn primary" id="confirm-ok" style="background:var(--danger);box-shadow:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================
+   Data model + persistence
+   localStorage works when the file is downloaded & opened.
+   In sandboxed previews it can throw — every access is guarded
+   so the app still runs in-memory and never crashes.
+   =========================================================== */
+const STORAGE_KEY = 'billpay.v2';
+const DAY_MS = 86400000;
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+const CATS = {
+  housing:       { label: 'Housing',       color: 'var(--cat-housing)' },
+  insurance:     { label: 'Insurance',     color: 'var(--cat-insurance)' },
+  utilities:     { label: 'Utilities',     color: 'var(--cat-utilities)' },
+  debt:          { label: 'Debt / Credit', color: 'var(--cat-debt)' },
+  subscriptions: { label: 'Subscriptions', color: 'var(--cat-subscriptions)' },
+  other:         { label: 'Other',         color: 'var(--cat-other)' },
+};
+
+function defaultState() {
+  return {
+    bills: [
+      {id:1,  name:'Rent',             day:1,  amount:1569, category:'housing',       note:'Due ~1st–3rd'},
+      {id:2,  name:'Comcast / Xfinity',day:1,  amount:76,   category:'utilities',     note:'Internet · ~1st'},
+      {id:3,  name:'Discover (×2)',    day:1,  amount:200,  category:'debt',          note:'$100 each · ~1st'},
+      {id:4,  name:'USAA Insurance',   day:3,  amount:278,  category:'insurance',     note:'Auto-pay ~3rd', autopay:true},
+      {id:5,  name:'Credit One',       day:3,  amount:80,   category:'debt',          note:'Variable · ~3rd'},
+      {id:6,  name:'ADT Security',     day:3,  amount:71,   category:'utilities',     note:'Auto-pay ~3rd', autopay:true},
+      {id:7,  name:'City Utilities',   day:11, amount:210,  category:'utilities',     note:'~9th–13th'},
+      {id:8,  name:'ChatGPT (×2)',     day:12, amount:40,   category:'subscriptions', note:'$19.99 ×2 · ~12th'},
+      {id:9,  name:'Xfinity Mobile',   day:13, amount:102,  category:'utilities',     note:'~13th–14th'},
+      {id:10, name:'Discover e-pay',   day:17, amount:20,   category:'debt',          note:'~16th–18th'},
+      {id:11, name:'VW Credit',        day:18, amount:191,  category:'debt',          note:'Car payment'},
+      {id:12, name:'Verizon',          day:19, amount:94,   category:'utilities',     note:'~19th'},
+      {id:13, name:'SiriusXM',         day:19, amount:14,   category:'subscriptions', note:'~19th'},
+      {id:14, name:'Santander',        day:21, amount:368,  category:'debt',          note:'~21st–23rd'},
+      {id:15, name:'Amazon Prime',     day:27, amount:15,   category:'subscriptions', note:'~27th'},
+    ],
+    settings: {
+      payFrequency: 'biweekly',
+      payAnchor: '2025-07-11',   // a known Friday payday
+      semiDays: [15, 31],
+      monthlyDay: 1,
+      paycheck: 1700,            // midpoint of the ~$1,500–$1,900 range
+      payLabel: 'Payroll',
+      balance: null,
+      balanceAsOf: null,
+      theme: 'auto'
+    },
+    paid: {},
+    payOverrides: {},
+    extraIncome: [],
+    nextId: 20
+  };
+}
+
+function migrate(s) {
+  const d = defaultState();
+  s = s || {};
+  s.settings = Object.assign({}, d.settings, s.settings || {});
+  if (!Array.isArray(s.bills)) s.bills = d.bills;
+  // sanitize bills
+  s.bills = s.bills.filter(b => b && typeof b.name === 'string').map(b => ({
+    id: Number.isFinite(b.id) ? b.id : 0,
+    name: b.name,
+    day: Math.min(31, Math.max(1, parseInt(b.day, 10) || 1)),
+    amount: Math.max(0, Number(b.amount) || 0),
+    category: CATS[b.category] ? b.category : 'other',
+    note: typeof b.note === 'string' ? b.note : '',
+    autopay: !!b.autopay
+  }));
+  if (!Number.isFinite(s.nextId)) s.nextId = Math.max(20, ...s.bills.map(b => (b.id || 0))) + 1;
+  // ensure unique ids
+  let next = s.nextId;
+  const seen = new Set();
+  s.bills.forEach(b => { if (!b.id || seen.has(b.id)) b.id = next++; seen.add(b.id); });
+
+  // ---- new data buckets (back-compat with v2 saves) ----
+  if (!s.paid || typeof s.paid !== 'object') s.paid = {};
+  if (!s.payOverrides || typeof s.payOverrides !== 'object') s.payOverrides = {};
+  if (!Array.isArray(s.extraIncome)) s.extraIncome = [];
+  s.extraIncome = s.extraIncome.filter(x => x && typeof x.date === 'string').map(x => ({
+    id: Number.isFinite(x.id) ? x.id : (next++),
+    date: x.date,
+    amount: Math.max(0, Number(x.amount) || 0),
+    label: typeof x.label === 'string' ? x.label : 'Income'
+  }));
+  const bal = s.settings.balance;
+  s.settings.balance = (bal == null || bal === '' || !Number.isFinite(Number(bal))) ? null : Number(bal);
+  s.settings.balanceAsOf = (typeof s.settings.balanceAsOf === 'string' && s.settings.balanceAsOf) ? s.settings.balanceAsOf : null;
+
+  s.nextId = Math.max(s.nextId, next);
+  return s;
+}
+
+let storageOK = true;
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return migrate(JSON.parse(raw));
+  } catch (e) { storageOK = false; }
+  return defaultState();
+}
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    state.__savedAt = Date.now();
+  } catch (e) { storageOK = false; }
+  renderFooter();
+}
+
+let state = loadState();
+// quick check whether storage is usable at all
+try { localStorage.setItem('billpay.__t', '1'); localStorage.removeItem('billpay.__t'); }
+catch (e) { storageOK = false; }
+
+let curYear = new Date().getFullYear();
+let curMonth = new Date().getMonth();
+let editId = null;
+let dragBillId = null;
+let dayModalDay = null;       // which day the day-sheet is showing
+let billOpenedFromDay = false;
+
+/* ===========================================================
+   Date + money helpers
+   =========================================================== */
+const $ = id => document.getElementById(id);
+const daysInMonth = (y,m) => new Date(y, m+1, 0).getDate();
+const parseISO = s => { const [y,mo,d] = String(s).split('-').map(Number); return new Date(y, (mo||1)-1, d||1); };
+const isToday = (y,m,d) => { const t = new Date(); return d===t.getDate() && m===t.getMonth() && y===t.getFullYear(); };
+function ordinal(n) { const s=['th','st','nd','rd'], v=n%100; return n + (s[(v-20)%10] || s[v] || s[0]); }
+function money(n, cents) {
+  const neg = n < 0, v = Math.abs(n);
+  const opts = cents ? {minimumFractionDigits:2, maximumFractionDigits:2} : {maximumFractionDigits:0};
+  return (neg ? '−$' : '$') + v.toLocaleString('en-US', opts);
+}
+function signed(n) { return (n >= 0 ? '+' : '−') + '$' + Math.abs(n).toLocaleString('en-US', {maximumFractionDigits:0}); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const catColor = c => (CATS[c] || CATS.other).color;
+const catLabel = c => (CATS[c] || CATS.other).label;
+const effDay = (bill, n) => Math.min(bill.day, n);   // clamp bill day to the month length
+
+/* ===========================================================
+   New: paid status (per month), per-check + one-off income
+   =========================================================== */
+const monthKey = (y,m) => y + '-' + m;
+const pad2 = x => String(x).padStart(2, '0');
+const isoOf = (y,m,d) => y + '-' + pad2(m+1) + '-' + pad2(d);
+function todayParts() { const t = new Date(); return { y: t.getFullYear(), m: t.getMonth(), d: t.getDate() }; }
+
+function paidMap(y,m) { return (state.paid && state.paid[monthKey(y,m)]) || {}; }
+function isPaid(id,y,m) { return !!paidMap(y,m)[id]; }
+function setPaid(id,y,m,val) {
+  if (!state.paid) state.paid = {};
+  const k = monthKey(y,m);
+  if (val) { (state.paid[k] = state.paid[k] || {})[id] = true; }
+  else if (state.paid[k]) { delete state.paid[k][id]; if (!Object.keys(state.paid[k]).length) delete state.paid[k]; }
+}
+function monthPaidStats(y,m) {
+  const n = daysInMonth(y,m);
+  let paid = 0, paidCount = 0, total = 0;
+  state.bills.forEach(b => { total += b.amount; if (isPaid(b.id,y,m)) { paid += b.amount; paidCount++; } });
+  return { paid, paidCount, total, left: total - paid, count: state.bills.length };
+}
+
+function checkAmount(y,m,day) {
+  const o = state.payOverrides && state.payOverrides[y + '-' + m + '-' + day];
+  return Number.isFinite(o) ? o : (state.settings.paycheck || 0);
+}
+function hasOverride(y,m,day) { return !!(state.payOverrides && Object.prototype.hasOwnProperty.call(state.payOverrides, y + '-' + m + '-' + day)); }
+function setCheckAmount(y,m,day,val) {
+  if (!state.payOverrides) state.payOverrides = {};
+  const k = y + '-' + m + '-' + day;
+  const num = Math.max(0, Math.round(Number(val)) || 0);
+  if (val === '' || val == null || num === (state.settings.paycheck || 0)) delete state.payOverrides[k];
+  else state.payOverrides[k] = num;
+}
+
+const extraList = () => state.extraIncome || [];
+function extraOnDay(y,m,day) { const iso = isoOf(y,m,day); return extraList().filter(x => x.date === iso).reduce((s,x)=>s+x.amount, 0); }
+function extraItemsOnDay(y,m,day) { const iso = isoOf(y,m,day); return extraList().filter(x => x.date === iso); }
+function extraInRange(y,m,lo,hi) {
+  return extraList().filter(x => { const d = parseISO(x.date); return d.getFullYear()===y && d.getMonth()===m && d.getDate()>=lo && d.getDate()<hi; });
+}
+function addExtraIncome(y,m,day,amount,label) {
+  if (!Array.isArray(state.extraIncome)) state.extraIncome = [];
+  const amt = Math.max(0, Math.round(Number(amount)) || 0);
+  if (!amt) return false;
+  state.extraIncome.push({ id: state.nextId++, date: isoOf(y,m,day), amount: amt, label: (String(label||'').trim() || 'Income') });
+  return true;
+}
+function removeExtraIncome(id) { state.extraIncome = extraList().filter(x => x.id !== id); }
+
+/* ===========================================================
+   New: balance projection (overdraft radar)
+   Convention: settings.balance is the balance at END of balanceAsOf
+   (or today if unset). Past days in the as-of month are not projected.
+   =========================================================== */
+function billsDueOn(y,m,d) { const n = daysInMonth(y,m); return state.bills.filter(b => effDay(b,n) === d); }
+function billsSumOn(y,m,d) { return billsDueOn(y,m,d).reduce((s,b)=>s+b.amount, 0); }
+function incomeOn(y,m,d) { const pays = paydaysInMonth(y,m,state.settings); return (pays.includes(d) ? checkAmount(y,m,d) : 0) + extraOnDay(y,m,d); }
+function netThrough(y,m,D) { let s=0; for (let d=1; d<=D; d++) s += incomeOn(y,m,d) - billsSumOn(y,m,d); return s; }
+function monthNet(y,m) { return netThrough(y,m, daysInMonth(y,m)); }
+function balanceAtMonthStart(y,m) {
+  const s = state.settings;
+  const asOf = s.balanceAsOf ? parseISO(s.balanceAsOf) : new Date();
+  const aY = asOf.getFullYear(), aM = asOf.getMonth(), aD = asOf.getDate();
+  let bal = s.balance - netThrough(aY, aM, aD);
+  let yy = aY, mm = aM, guard = 0;
+  while ((yy*12+mm) < (y*12+m) && guard++ < 120) { bal += monthNet(yy, mm); mm++; if (mm>11) { mm=0; yy++; } }
+  return bal;
+}
+function projectMonth(y,m) {
+  const s = state.settings;
+  if (!Number.isFinite(s.balance)) return { hasBalance:false };
+  const asOf = s.balanceAsOf ? parseISO(s.balanceAsOf) : new Date();
+  const aY = asOf.getFullYear(), aM = asOf.getMonth(), aD = asOf.getDate();
+  const tIdx = y*12+m, aIdx = aY*12+aM;
+  if (tIdx < aIdx) return { hasBalance:true, before:true };
+  const n = daysInMonth(y,m);
+  const days = [];
+  let min = null, negDay = null, start = null, end = null;
+  if (tIdx === aIdx) {
+    let balc = s.balance; start = balc;
+    for (let d=1; d<=n; d++) {
+      if (d < aD) { days.push({ day:d, balance:null }); continue; }
+      if (d > aD) balc += incomeOn(y,m,d) - billsSumOn(y,m,d);
+      days.push({ day:d, balance:balc });
+      if (min === null || balc < min.balance) min = { day:d, balance:balc };
+      if (negDay === null && balc < 0) negDay = d;
+    }
+    end = balc;
+    return { hasBalance:true, before:false, current:true, asOfDay:aD, start, end, days, min, negDay };
+  }
+  let balc = balanceAtMonthStart(y,m); start = balc; min = { day:0, balance:balc };
+  for (let d=1; d<=n; d++) {
+    balc += incomeOn(y,m,d) - billsSumOn(y,m,d);
+    days.push({ day:d, balance:balc });
+    if (balc < min.balance) min = { day:d, balance:balc };
+    if (negDay === null && balc < 0) negDay = d;
+  }
+  end = balc;
+  return { hasBalance:true, before:false, current:false, asOfDay:null, start, end, days, min, negDay };
+}
+
+/* ===========================================================
+   New: next payday + safe-to-spend (anchored to the real today)
+   =========================================================== */
+function nextPaydayOnOrAfter(y,m,d) {
+  let yy=y, mm=m, dd=d, guard=0;
+  while (guard++ < 6) {
+    const pays = paydaysInMonth(yy, mm, state.settings);
+    for (const p of pays) if (p >= dd) return { y:yy, m:mm, day:p };
+    mm++; if (mm>11) { mm=0; yy++; } dd = 1;
+  }
+  return null;
+}
+function safeToSpend() {
+  const s = state.settings;
+  const { y:ty, m:tm, d:td } = todayParts();
+  const np = nextPaydayOnOrAfter(ty, tm, td);
+  if (!np) return null;
+  const days = Math.max(1, Math.round((new Date(np.y,np.m,np.day) - new Date(ty,tm,td)) / DAY_MS));
+  let upcoming = 0, count = 0;
+  let cy=ty, cm=tm, cd=td, guard=0;
+  while (guard++ < 70) {
+    if (cy===np.y && cm===np.m && cd===np.day) break;
+    const n = daysInMonth(cy,cm);
+    state.bills.forEach(b => { if (effDay(b,n)===cd && !isPaid(b.id,cy,cm)) { upcoming += b.amount; count++; } });
+    cd++; if (cd>n) { cd=1; cm++; if (cm>11) { cm=0; cy++; } }
+  }
+  const hasBal = Number.isFinite(s.balance);
+  const pool = hasBal ? (s.balance - upcoming) : null;
+  return { np, days, upcoming, count, hasBal, pool, perDay: hasBal ? pool/days : null };
+}
+
+/* ===========================================================
+   Payday engine (weekly / biweekly / semimonthly / monthly)
+   =========================================================== */
+function paydaysInMonth(y, m, st) {
+  const n = daysInMonth(y, m), out = [];
+  const f = st.payFrequency;
+  if (f === 'weekly' || f === 'biweekly') {
+    const step = f === 'weekly' ? 7 : 14;
+    const anchor = parseISO(st.payAnchor);
+    for (let i = 1; i <= n; i++) {
+      const diff = Math.round((new Date(y,m,i) - anchor) / DAY_MS);
+      if ((((diff % step) + step) % step) === 0) out.push(i);
+    }
+  } else if (f === 'semimonthly') {
+    (st.semiDays || [15,31]).forEach(dd => { const day = Math.min(dd, n); if (!out.includes(day)) out.push(day); });
+    out.sort((a,b) => a-b);
+  } else if (f === 'monthly') {
+    out.push(Math.min(st.monthlyDay || 1, n));
+  }
+  return out;
+}
+
+// Group bills into the paycheck that covers each one.
+function computePeriods(y, m, pays) {
+  const n = daysInMonth(y, m);
+  const bills = state.bills;
+  const sumOf  = arr => arr.reduce((s,b)=>s+b.amount, 0);
+  const paidOf = arr => arr.filter(b => isPaid(b.id, y, m)).reduce((s,b)=>s+b.amount, 0);
+  const res = { carryIn: { bills: [], sum: 0, paid: 0 }, list: [] };
+  if (!pays.length) {
+    res.carryIn.bills = bills.slice().sort((a,b)=>effDay(a,n)-effDay(b,n));
+    res.carryIn.sum = sumOf(res.carryIn.bills);
+    res.carryIn.paid = paidOf(res.carryIn.bills);
+    return res;
+  }
+  const first = pays[0];
+  res.carryIn.bills = bills.filter(b => effDay(b,n) < first).sort((a,b)=>effDay(a,n)-effDay(b,n));
+  res.carryIn.sum = sumOf(res.carryIn.bills);
+  res.carryIn.paid = paidOf(res.carryIn.bills);
+  for (let i = 0; i < pays.length; i++) {
+    const lo = pays[i], hi = (i+1 < pays.length) ? pays[i+1] : (n+1);
+    const pb = bills.filter(b => effDay(b,n) >= lo && effDay(b,n) < hi).sort((a,b)=>effDay(a,n)-effDay(b,n));
+    const sum = sumOf(pb);
+    const paid = paidOf(pb);
+    const extras = extraInRange(y, m, lo, hi);
+    const extraSum = extras.reduce((s,x)=>s+x.amount, 0);
+    const base = checkAmount(y, m, lo);
+    const income = base + extraSum;
+    const ratio = income > 0 ? sum/income : (sum > 0 ? 2 : 0);
+    const status = ratio > 1 ? 'over' : (ratio > 0.85 ? 'tight' : 'good');
+    res.list.push({
+      payday: lo, income, base, extras, extraSum,
+      bills: pb, sum, paid, unpaid: sum - paid,
+      leftover: income - sum, pct: Math.min(100, Math.round(ratio*100)), status,
+      overridden: hasOverride(y, m, lo)
+    });
+  }
+  return res;
+}
+
+/* ===========================================================
+   Rendering
+   =========================================================== */
+function renderAll() {
+  applyTheme();
+  const n = daysInMonth(curYear, curMonth);
+  const pays = paydaysInMonth(curYear, curMonth, state.settings);
+  const periods = computePeriods(curYear, curMonth, pays);
+
+  $('month-title').textContent = MONTHS[curMonth] + ' ' + curYear;
+  $('brand-sub').textContent = 'Plan every bill around ' + (state.settings.payLabel || 'payday').toLowerCase();
+  renderLegend();
+  renderKPIs(n, pays, periods);
+  renderTodayStrip();
+  renderCalendar(n, pays);
+  renderBanner(pays);
+  renderBalancePanel();
+  renderPeriods(n, pays, periods);
+  renderCatBreakdown(n);
+  renderList(n);
+  renderFooter();
+}
+
+// Re-render everything and keep the day sheet in sync if it's open.
+function rerender() { renderAll(); if (isOpen('sheet-day') && dayModalDay != null) renderDaySheet(dayModalDay); }
+function togglePaid(id) { setPaid(id, curYear, curMonth, !isPaid(id, curYear, curMonth)); saveState(); rerender(); }
+
+function renderLegend() {
+  const order = ['housing','insurance','utilities','debt','subscriptions'];
+  $('legend').innerHTML =
+    order.map(c => `<div class="leg-item"><span class="leg-dot" style="background:${CATS[c].color}"></span>${CATS[c].label}</div>`).join('') +
+    `<div class="leg-item"><span class="leg-dot" style="background:var(--income)"></span>Payday</div>` +
+    `<div class="leg-item"><span class="leg-dot ring"></span>Today</div>`;
+}
+
+function renderKPIs(n, pays, periods) {
+  const totalBills = state.bills.reduce((s,b)=>s+b.amount, 0);
+  const paycheck = state.settings.paycheck || 0;
+  const income = periods.list.reduce((s,p)=>s+p.income, 0);
+  const net = income - totalBills;
+  const incomePeriods = periods.list;
+  const tightest = incomePeriods.length ? incomePeriods.reduce((a,b)=> b.leftover < a.leftover ? b : a) : null;
+
+  const netClass = net >= 0 ? 'pos' : 'neg';
+  let tightVal = '—', tightSub = 'set your pay schedule', tightClass = '', tightAccent = 'var(--ink-3)';
+  if (tightest && paycheck > 0) {
+    tightVal = signed(tightest.leftover);
+    tightClass = tightest.leftover < 0 ? 'neg' : (tightest.status === 'tight' ? 'caution' : 'pos');
+    tightSub = `after ${MONTHS_SHORT[curMonth]} ${tightest.payday} paycheck`;
+    tightAccent = tightest.leftover < 0 ? 'var(--danger)' : (tightest.status === 'tight' ? 'var(--warn)' : 'var(--income)');
+  }
+
+  const cards = [
+    { label:'<i class="ti ti-receipt"></i> Bills / month', val: money(totalBills), sub:`${state.bills.length} bills`, accent:'var(--brand)', cls:'num' },
+    { label:'<i class="ti ti-cash"></i> Income · '+MONTHS_SHORT[curMonth], val: paycheck>0 ? money(income) : '—', sub:`${pays.length} paycheck${pays.length===1?'':'s'} (est.)`, accent:'var(--income)', cls:'num' },
+    { label:'<i class="ti ti-scale"></i> Net this month', val: paycheck>0 ? signed(net) : '—', sub: paycheck>0 ? (net>=0?'surplus (est.)':'shortfall (est.)') : 'set expected pay', accent:(net>=0?'var(--income)':'var(--danger)'), cls:'num '+(paycheck>0?netClass:'') },
+    { label:'<i class="ti ti-alert-triangle"></i> Tightest period', val: tightVal, sub: tightSub, accent: tightAccent, cls:'num '+tightClass },
+  ];
+  $('kpis').innerHTML = cards.map(c =>
+    `<div class="kpi" style="--accent:${c.accent}">
+       <div class="kpi-label">${c.label}</div>
+       <div class="kpi-val ${c.cls}">${c.val}</div>
+       <div class="kpi-sub">${c.sub}</div>
+     </div>`).join('');
+}
+
+function chipHTML(b, n) {
+  const shifted = b.day > n;
+  const paid = isPaid(b.id, curYear, curMonth);
+  return `<div class="bill-chip cat-${b.category}${paid ? ' paid' : ''}" draggable="true" data-bid="${b.id}"
+            title="${esc(b.name)} — ${money(b.amount)}${paid ? ' · paid' : ''}${b.autopay ? ' · auto-pay' : ''}${shifted ? ` (due the ${ordinal(b.day)}, shown on the last day of ${MONTHS[curMonth]})` : ''}${b.note ? ' · ' + esc(b.note) : ''}">
+            <span class="chip-name">${paid ? '<i class="ti ti-check" aria-hidden="true"></i> ' : ''}${esc(b.name)}${b.autopay ? '<i class="ti ti-bolt chip-auto" aria-hidden="true"></i>' : ''}</span>
+            ${shifted ? `<span class="chip-shift">${ordinal(b.day)}</span>` : ''}
+            <span class="chip-amt">${money(b.amount)}</span>
+            <button class="del-btn" data-bid="${b.id}" tabindex="-1" aria-label="Remove ${esc(b.name)}">&#10005;</button>
+          </div>`;
+}
+
+/* ---------- New: today / safe-to-spend strip ---------- */
+function renderTodayStrip() {
+  const el = $('today-strip');
+  const sts = safeToSpend();
+  if (!sts || (!state.bills.length && !sts.hasBal)) { el.className = 'today-strip hide'; el.innerHTML = ''; return; }
+  const npLabel = `${MONTHS_SHORT[sts.np.m]} ${sts.np.day}`;
+  const dueTxt = sts.count
+    ? `<b class="big">${money(sts.upcoming)}</b> due before payday <span class="ts-sub">(${npLabel})</span> · ${sts.count} bill${sts.count===1?'':'s'}`
+    : `Nothing left to pay before payday <span class="ts-sub">(${npLabel})</span>`;
+  const left = `<div class="ts-block warn"><i class="ti ti-clock-dollar" aria-hidden="true"></i><span>${dueTxt}</span></div>`;
+  let right;
+  if (sts.hasBal && sts.pool < 0) {
+    right = `<div class="ts-block warn"><i class="ti ti-alert-triangle" aria-hidden="true"></i><span><b>${money(Math.abs(sts.pool))}</b> short before ${npLabel} <span class="ts-sub">— move or trim a bill</span></span></div>`;
+  } else if (sts.hasBal) {
+    right = `<div class="ts-block safe"><i class="ti ti-wallet" aria-hidden="true"></i><span>Safe to spend <b>${money(sts.perDay)}</b>/day <span class="ts-sub">for ${sts.days} day${sts.days===1?'':'s'}</span></span></div>`;
+  } else {
+    right = `<div class="ts-block"><i class="ti ti-wallet" aria-hidden="true"></i><span class="ts-sub"><button class="ts-link" id="ts-setbal">Add your balance</button> to see safe-to-spend</span></div>`;
+  }
+  el.className = 'today-strip';
+  el.innerHTML = left + right;
+  const sb = $('ts-setbal'); if (sb) sb.addEventListener('click', openSettings);
+}
+
+/* ---------- New: balance projection (overdraft radar) ---------- */
+function fmtAsOf() {
+  const d = state.settings.balanceAsOf ? parseISO(state.settings.balanceAsOf) : new Date();
+  return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+}
+function sparklineSVG(days) {
+  const pts = days.filter(d => d.balance !== null);
+  if (pts.length < 2) return '<svg viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"></svg>';
+  const W = 300, H = 64, pad = 7;
+  const ys = pts.map(p => p.balance);
+  const xs = pts.map(p => p.day);
+  const minY = Math.min(...ys, 0), maxY = Math.max(...ys, 0);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const sx = d => pad + (x1 === x0 ? 0 : (d - x0) / (x1 - x0)) * (W - 2*pad);
+  const sy = v => { const r = (maxY - minY) || 1; return pad + (1 - (v - minY) / r) * (H - 2*pad); };
+  const line = pts.map((p,i) => (i ? 'L' : 'M') + sx(p.day).toFixed(1) + ' ' + sy(p.balance).toFixed(1)).join(' ');
+  const area = `M ${sx(pts[0].day).toFixed(1)} ${sy(pts[0].balance).toFixed(1)} ` +
+               pts.slice(1).map(p => 'L ' + sx(p.day).toFixed(1) + ' ' + sy(p.balance).toFixed(1)).join(' ') +
+               ` L ${sx(pts[pts.length-1].day).toFixed(1)} ${(H-pad).toFixed(1)} L ${sx(pts[0].day).toFixed(1)} ${(H-pad).toFixed(1)} Z`;
+  const minPt = pts.reduce((a,b) => b.balance < a.balance ? b : a);
+  const goesNeg = minY < 0;
+  const stroke = goesNeg ? 'var(--danger)' : 'var(--income)';
+  const zeroLine = (minY < 0 && maxY > 0)
+    ? `<line x1="${pad}" y1="${sy(0).toFixed(1)}" x2="${W-pad}" y2="${sy(0).toFixed(1)}" stroke="var(--line-2)" stroke-width="1" stroke-dasharray="3 3"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Projected balance across the month">
+    <defs><linearGradient id="bpgrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${stroke}" stop-opacity="0.20"/><stop offset="1" stop-color="${stroke}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#bpgrad)"/>${zeroLine}
+    <path d="${line}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${sx(minPt.day).toFixed(1)}" cy="${sy(minPt.balance).toFixed(1)}" r="3.4" fill="${stroke}"/>
+  </svg>`;
+}
+function renderBalancePanel() {
+  const el = $('balance-panel');
+  const pj = projectMonth(curYear, curMonth);
+  if (!pj.hasBalance) {
+    el.innerHTML = `<div class="bp-empty">
+      <i class="ti ti-radar" style="font-size:30px;color:var(--ink-3)" aria-hidden="true"></i>
+      <span class="txt"><b>Catch overdrafts before they happen.</b> Add your current checking balance and this projects it day-by-day so you can see your lowest point before it arrives.</span>
+      <button class="btn primary sm" id="bp-set"><i class="ti ti-plus" aria-hidden="true"></i> Add balance</button>
+    </div>`;
+    const s = $('bp-set'); if (s) s.addEventListener('click', openSettings);
+    return;
+  }
+  if (pj.before) {
+    el.innerHTML = `<div class="bp-foot muted"><i class="ti ti-info-circle" aria-hidden="true"></i> Your balance is set as of ${fmtAsOf()} — open that month or a later one to see the projection.</div>`;
+    return;
+  }
+  const min = pj.min || { day: 0, balance: pj.start };
+  const low = min.balance;
+  const lowCls = low < 0 ? 'neg' : (low < 100 ? 'warn' : 'pos');
+  const dayTxt = min.day ? `on ${MONTHS_SHORT[curMonth]} ${min.day}` : 'at month start';
+  let foot;
+  if (pj.negDay !== null) {
+    foot = `<div class="bp-foot danger"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <span>Heads up — projected to go <b>negative on ${MONTHS_SHORT[curMonth]} ${pj.negDay}</b>. Move or delay a bill before then, or add income to stay clear.</span></div>`;
+  } else if (low < 100) {
+    foot = `<div class="bp-foot ok"><i class="ti ti-alert-circle" aria-hidden="true"></i> <span>Stays positive, but cuts it close — down to <b>${money(low)}</b> ${dayTxt}. Keep a small buffer.</span></div>`;
+  } else {
+    foot = `<div class="bp-foot ok"><i class="ti ti-shield-check" aria-hidden="true"></i> <span>On track to stay above water all month. Lowest point is <b>${money(low)}</b> ${dayTxt}.</span></div>`;
+  }
+  const flow = pj.current
+    ? `${money(pj.start)} now → ${money(pj.end)} by month end`
+    : `${money(pj.start)} at start → ${money(pj.end)} by month end`;
+  el.innerHTML = `
+    <div class="bp-grid">
+      <div class="bp-metric">
+        <span class="lbl"><i class="ti ti-arrow-down-right" aria-hidden="true"></i> Lowest balance${pj.current ? ' ahead' : ''}</span>
+        <span class="val ${lowCls}">${money(low)}</span>
+        <span class="sub">${dayTxt} · ${flow}</span>
+      </div>
+      <div class="bp-spark">${sparklineSVG(pj.days)}</div>
+    </div>
+    ${foot}`;
+}
+
+/* ---------- New: category breakdown ---------- */
+function renderCatBreakdown(n) {
+  const el = $('cat-breakdown');
+  const total = state.bills.reduce((s,b)=>s+b.amount, 0);
+  if (!state.bills.length || total <= 0) { el.className = 'cat-breakdown hide'; el.innerHTML = ''; return; }
+  const order = ['housing','debt','utilities','insurance','subscriptions','other'];
+  const sums = {};
+  state.bills.forEach(b => { const c = CATS[b.category] ? b.category : 'other'; sums[c] = (sums[c] || 0) + b.amount; });
+  const items = order.filter(c => sums[c] > 0).map(c => ({ c, amt: sums[c], pct: sums[c] / total * 100 }));
+  el.className = 'cat-breakdown';
+  el.innerHTML =
+    `<div class="cb-bar">${items.map(it => `<div class="cb-seg" style="flex:${it.amt};background:${CATS[it.c].color}" title="${CATS[it.c].label}: ${money(it.amt)} (${Math.round(it.pct)}%)"></div>`).join('')}</div>` +
+    `<div class="cb-legend">${items.map(it => `<span class="cb-item"><span class="dot" style="background:${CATS[it.c].color}"></span>${CATS[it.c].label} <b>${money(it.amt)}</b> <span class="pct">${Math.round(it.pct)}%</span></span>`).join('')}</div>`;
+}
+
+function renderCalendar(n, pays) {
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+  const firstDow = new Date(curYear, curMonth, 1).getDay();
+  const prevMonthDays = new Date(curYear, curMonth, 0).getDate();
+  let idx = 0;
+
+  // leading ghost days
+  for (let i = 0; i < firstDow; i++) {
+    const c = document.createElement('div');
+    c.className = 'cal-cell other-month';
+    c.style.setProperty('--i', idx++);
+    c.setAttribute('aria-hidden', 'true');
+    c.innerHTML = `<div class="day-num"><span class="dn">${prevMonthDays - firstDow + i + 1}</span></div>`;
+    grid.appendChild(c);
+  }
+
+  for (let day = 1; day <= n; day++) {
+    const isPay = pays.includes(day);
+    const today = isToday(curYear, curMonth, day);
+    const dayBills = state.bills.filter(b => effDay(b, n) === day);
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (isPay ? ' payday' : '') + (today ? ' today' : '');
+    cell.style.setProperty('--i', idx++);
+    cell.dataset.day = day;
+    cell.tabIndex = 0;
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('aria-label', `${MONTHS[curMonth]} ${day}${isPay ? ', payday' : ''}, ${dayBills.length} bill${dayBills.length===1?'':'s'}`);
+
+    cell.addEventListener('dragover', e => { e.preventDefault(); cell.classList.add('drag-over'); });
+    cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+    cell.addEventListener('drop', e => {
+      e.preventDefault(); cell.classList.remove('drag-over');
+      if (dragBillId !== null) {
+        const b = state.bills.find(x => x.id === dragBillId);
+        if (b && b.day !== day) { b.day = day; saveState(); renderAll(); }
+      }
+    });
+    cell.addEventListener('click', () => openDay(day));
+    cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDay(day); } });
+
+    let html = `<div class="day-num"><span class="dn">${day}</span>${isPay ? '<span class="pay-tag"><i class="ti ti-cash"></i>Pay</span>' : ''}</div>`;
+    const incomeDay = extraOnDay(curYear, curMonth, day);
+    if (incomeDay > 0) html += `<div class="chips"><div class="income-chip" title="One-off income"><i class="ti ti-plus" aria-hidden="true"></i>${money(incomeDay)}</div></div>`;
+    const show = dayBills.slice(0, 3);
+    const extra = dayBills.length - show.length;
+    html += `<div class="chips">${show.map(b => chipHTML(b, n)).join('')}</div>`;
+    if (extra > 0) html += `<div class="more-chip" data-day="${day}">+${extra} more</div>`;
+    html += `<div class="add-hint" data-day="${day}">+ add bill</div>`;
+    cell.innerHTML = html;
+
+    cell.querySelectorAll('.bill-chip').forEach(chip => {
+      const bid = parseInt(chip.dataset.bid);
+      chip.addEventListener('click', e => { e.stopPropagation(); openEdit(bid); });
+      chip.addEventListener('dragstart', e => { dragBillId = bid; chip.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
+      chip.addEventListener('dragend', () => { dragBillId = null; chip.classList.remove('dragging'); });
+    });
+    cell.querySelectorAll('.del-btn').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); requestDelete(parseInt(btn.dataset.bid)); }));
+    cell.querySelector('.add-hint').addEventListener('click', e => { e.stopPropagation(); openAdd(day); });
+    const more = cell.querySelector('.more-chip');
+    if (more) more.addEventListener('click', e => { e.stopPropagation(); openDay(day); });
+
+    grid.appendChild(cell);
+  }
+
+  // trailing ghost days to complete the final week
+  const total = firstDow + n;
+  const rem = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= rem; i++) {
+    const c = document.createElement('div');
+    c.className = 'cal-cell other-month';
+    c.style.setProperty('--i', idx++);
+    c.setAttribute('aria-hidden', 'true');
+    c.innerHTML = `<div class="day-num"><span class="dn">${i}</span></div>`;
+    grid.appendChild(c);
+  }
+}
+
+function renderBanner(pays) {
+  const b = $('banner');
+  if (!pays.length) { b.style.display = 'none'; return; }
+  const pc = state.settings.paycheck || 0;
+  b.style.display = 'flex';
+  b.innerHTML = `<i class="ti ti-cash" aria-hidden="true"></i>
+    <strong>Paydays in ${MONTHS_SHORT[curMonth]}:</strong>
+    ${pays.map(d => `<span class="pay-badge">${MONTHS_SHORT[curMonth]} ${d}</span>`).join('')}
+    <span class="banner-meta">· ${esc(state.settings.payLabel || 'Payroll')}${pc ? ' ~' + money(pc) + ' / check (est.)' : ''}</span>`;
+}
+
+function renderPeriods(n, pays, periods) {
+  const wrap = $('periods');
+  $('period-sub').textContent = pays.length
+    ? `${pays.length} paycheck${pays.length===1?'':'s'} this month`
+    : 'No paydays — set your schedule';
+  let html = '';
+  const hasPay = (state.settings.paycheck || 0) > 0;
+
+  if (periods.carryIn.bills.length) {
+    const ci = periods.carryIn;
+    html += `<div class="period carryin">
+      <div class="period-head">
+        <span class="pay-chip ghost"><i class="ti ti-arrow-back-up"></i> Before 1st ${MONTHS_SHORT[curMonth]} check</span>
+        <span class="pay-amt">${money(ci.sum)}</span>
+      </div>
+      <div class="carry-note"><b>${money(ci.sum)}</b> is due before your first ${MONTHS_SHORT[curMonth]} paycheck, so it's covered by your <b>previous</b> check.</div>
+      ${paidFootHTML(ci.paid, ci.sum - ci.paid)}
+      <div class="period-bills">${ci.bills.map(b => billLine(b)).join('')}</div>
+    </div>`;
+  }
+
+  periods.list.forEach(p => {
+    const lo = `${p.leftover >= 0 ? 'Leaves ' : ''}${money(p.leftover)}${p.leftover < 0 ? ' short' : ''}`;
+    html += `<div class="period">
+      <div class="period-head">
+        <span class="pay-chip"><i class="ti ti-cash"></i> ${MONTHS_SHORT[curMonth]} ${p.payday}${p.overridden ? ' <span class="pc-tag edit">edited</span>' : ''}${p.extraSum ? ` <span class="pc-tag extra">+${money(p.extraSum)}</span>` : ''}</span>
+        <span class="pay-amt income">${hasPay ? '+'+money(p.income) : '—'}</span>
+      </div>
+      <div class="cover-bar"><div class="cover-fill ${p.status}" style="width:${hasPay ? p.pct : 0}%"></div></div>
+      <div class="period-foot">
+        <span class="lbl">${money(p.sum)} in bills${hasPay ? ` of ${money(p.income)}` : ''}</span>
+        <span class="leftover ${p.status}">${hasPay ? lo : money(p.sum)}</span>
+      </div>
+      ${p.bills.length ? paidFootHTML(p.paid, p.unpaid) : ''}
+      <div class="period-bills">${p.bills.length ? p.bills.map(b => billLine(b)).join('') : '<div class="pb-empty">No bills due this period</div>'}</div>
+    </div>`;
+  });
+
+  wrap.innerHTML = html || '<div class="pb-empty">Add a pay schedule in settings to see cash flow.</div>';
+
+  wrap.querySelectorAll('.pb-check').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); togglePaid(parseInt(btn.dataset.bid)); }));
+  wrap.querySelectorAll('.pb[data-bid]').forEach(row =>
+    row.addEventListener('click', e => { if (!e.target.closest('.pb-check')) openEdit(parseInt(row.dataset.bid)); }));
+}
+
+function billLine(b) {
+  const paid = isPaid(b.id, curYear, curMonth);
+  return `<div class="pb${paid ? ' paid' : ''}" data-bid="${b.id}">
+    <button class="pb-check${paid ? ' on' : ''}" data-bid="${b.id}" aria-label="${paid ? 'Mark unpaid' : 'Mark paid'}" title="${paid ? 'Paid — tap to undo' : 'Mark paid'}"><i class="ti ti-check" aria-hidden="true"></i></button>
+    <span class="pb-name">${esc(b.name)}${b.autopay ? ' <span class="autopay-badge"><i class="ti ti-bolt" aria-hidden="true"></i>auto</span>' : ''}</span>
+    <span class="pb-amt">${money(b.amount)}</span></div>`;
+}
+function paidFootHTML(paidAmt, leftAmt) {
+  if (paidAmt <= 0 && leftAmt <= 0) return '';
+  const clear = leftAmt <= 0;
+  return `<div class="paid-foot">${paidAmt > 0 ? `<span class="pf-paid"><i class="ti ti-check" aria-hidden="true"></i> ${money(paidAmt)} paid</span>` : ''}<span class="pf-left ${clear ? 'clear' : ''}">${clear ? 'All paid' : money(leftAmt) + ' left to pay'}</span></div>`;
+}
+
+function renderList(n) {
+  const el = $('bill-list');
+  if (!state.bills.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="es-ic"><i class="ti ti-calendar-plus" aria-hidden="true"></i></div>
+      <h4>No bills yet</h4>
+      <p>Add your recurring bills and they'll map onto your paydays automatically — or load the sample set to see how it all works.</p>
+      <button class="btn primary" id="empty-add"><i class="ti ti-plus" aria-hidden="true"></i> Add your first bill</button>
+    </div>`;
+    const a = $('empty-add'); if (a) a.addEventListener('click', () => openAdd(null));
+    $('list-total').innerHTML = '';
+    return;
+  }
+  const sorted = [...state.bills].sort((a,b) => (effDay(a,n)-effDay(b,n)) || (a.day-b.day) || a.name.localeCompare(b.name));
+  el.innerHTML = sorted.map(b => {
+    const shifted = b.day > n;
+    const paid = isPaid(b.id, curYear, curMonth);
+    return `<div class="bill-row${paid ? ' paid' : ''}" draggable="true" data-bid="${b.id}" tabindex="0">
+      <button class="paid-toggle${paid ? ' on' : ''}" data-bid="${b.id}" aria-label="${paid ? 'Mark unpaid' : 'Mark paid'}" title="${paid ? 'Paid this month — tap to undo' : 'Mark paid this month'}"><i class="ti ti-check" aria-hidden="true"></i></button>
+      <span class="row-cat-dot" style="background:${catColor(b.category)}"></span>
+      <div class="row-name">
+        <span class="nm">${esc(b.name)} <span class="row-cat">${catLabel(b.category)}</span>${b.autopay ? ' <span class="autopay-badge"><i class="ti ti-bolt" aria-hidden="true"></i>auto</span>' : ''}</span>
+        ${b.note ? `<div class="row-note">${esc(b.note)}</div>` : ''}
+      </div>
+      <div class="row-day">${ordinal(b.day)}${shifted ? '*' : ''}</div>
+      <div class="row-amt">${money(b.amount)}</div>
+      <button class="row-del" data-bid="${b.id}" aria-label="Delete ${esc(b.name)}">&#10005;</button>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.paid-toggle').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); togglePaid(parseInt(btn.dataset.bid)); }));
+  el.querySelectorAll('.bill-row').forEach(row => {
+    const bid = parseInt(row.dataset.bid);
+    row.addEventListener('click', e => { if (!e.target.closest('.row-del') && !e.target.closest('.paid-toggle')) openEdit(bid); });
+    row.addEventListener('keydown', e => { if (e.key === 'Enter') openEdit(bid); });
+    row.addEventListener('dragstart', e => { dragBillId = bid; if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => dragBillId = null);
+  });
+  el.querySelectorAll('.row-del').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); requestDelete(parseInt(btn.dataset.bid)); }));
+
+  const stats = monthPaidStats(curYear, curMonth);
+  const clear = stats.left <= 0;
+  $('list-total').innerHTML =
+    `<span class="lt-label">Total monthly bills<span class="lt-sub">${stats.paidCount}/${stats.count} paid in ${MONTHS_SHORT[curMonth]} · <b class="left-amt ${clear ? 'clear' : ''}">${clear ? 'all caught up' : money(stats.left) + ' left'}</b></span></span>` +
+    `<span class="lt-val">${money(stats.total)}</span>`;
+}
+
+function renderFooter() {
+  const s = $('save-state');
+  if (storageOK) {
+    s.innerHTML = `<span class="save-dot"></span> Saved on this device · ${state.bills.length} bills`;
+  } else {
+    s.innerHTML = `<span class="save-dot off"></span> Preview mode — download the file to save changes`;
+  }
+}
+
+/* ===========================================================
+   Theme
+   =========================================================== */
+function effectiveTheme() {
+  if (state.settings.theme === 'light' || state.settings.theme === 'dark') return state.settings.theme;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyTheme() {
+  const t = effectiveTheme();
+  document.documentElement.dataset.theme = t;
+  const icon = $('btn-theme').querySelector('i');
+  icon.className = t === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.setAttribute('content', t === 'dark' ? '#0d121a' : '#0f7a6b');
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (state.settings.theme === 'auto') applyTheme(); });
+
+/* ===========================================================
+   Sheet (modal) manager — focus trap, ESC, backdrop
+   =========================================================== */
+let sheetStack = [];
+function openSheet(id) {
+  const el = $(id);
+  el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
+  sheetStack.push({ id, opener: document.activeElement });
+  document.body.style.overflow = 'hidden';
+  const focusable = el.querySelector('input, select, button:not(.x-btn)');
+  setTimeout(() => { if (focusable && focusable.focus) focusable.focus(); }, 40);
+}
+function closeSheet(id) {
+  const i = sheetStack.map(s=>s.id).lastIndexOf(id);
+  if (i === -1) return;
+  const { opener } = sheetStack[i];
+  sheetStack.splice(i, 1);
+  const el = $(id);
+  el.classList.remove('open'); el.setAttribute('aria-hidden', 'true');
+  if (!sheetStack.length) document.body.style.overflow = '';
+  if (opener && opener.focus) { try { opener.focus(); } catch (e) {} }
+}
+function isOpen(id) { return sheetStack.some(s => s.id === id); }
+function topSheet() { return sheetStack.length ? sheetStack[sheetStack.length-1].id : null; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && topSheet()) { e.preventDefault(); closeFromTop(); return; }
+  if (e.key === 'Tab' && topSheet()) {
+    const el = $(topSheet());
+    const f = [...el.querySelectorAll('input,select,button,[tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length-1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  if (e.key === 'Enter' && topSheet() === 'sheet-bill' && document.activeElement &&
+      document.activeElement.tagName === 'INPUT') { e.preventDefault(); saveBill(); }
+});
+
+// Respect the "return to day" flow when closing the bill sheet from anywhere.
+function closeFromTop() {
+  const top = topSheet();
+  if (top === 'sheet-confirm') { if (confirmResolver) { confirmResolver(false); confirmResolver = null; } closeSheet('sheet-confirm'); return; }
+  if (top === 'sheet-bill') { closeBillSheet(); return; }
+  closeSheet(top);
+}
+function closeBillSheet() {
+  const reopen = billOpenedFromDay ? dayModalDay : null;
+  billOpenedFromDay = false;
+  closeSheet('sheet-bill');
+  if (reopen !== null) openDay(reopen);
+}
+
+document.querySelectorAll('.sheet-overlay').forEach(ov => {
+  ov.addEventListener('click', e => {
+    if (e.target !== ov) return;
+    if (ov.id === 'sheet-confirm') { if (confirmResolver) { confirmResolver(false); confirmResolver = null; } closeSheet('sheet-confirm'); }
+    else if (ov.id === 'sheet-bill') closeBillSheet();
+    else closeSheet(ov.id);
+  });
+});
+document.querySelectorAll('[data-close]').forEach(btn =>
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.close;
+    if (target === 'sheet-bill') closeBillSheet();
+    else closeSheet(target);
+  }));
+
+/* ===========================================================
+   Custom confirm (promise-based, stacks above any sheet)
+   =========================================================== */
+let confirmResolver = null;
+function confirmAction(message, okText) {
+  $('confirm-msg').textContent = message;
+  $('confirm-ok').textContent = okText || 'Delete';
+  openSheet('sheet-confirm');
+  return new Promise(resolve => { confirmResolver = resolve; });
+}
+$('confirm-ok').addEventListener('click', () => {
+  const r = confirmResolver; confirmResolver = null;
+  closeSheet('sheet-confirm');
+  if (r) r(true);
+});
+$('confirm-cancel').addEventListener('click', () => {
+  const r = confirmResolver; confirmResolver = null;
+  closeSheet('sheet-confirm');
+  if (r) r(false);
+});
+
+/* ===========================================================
+   Delete a bill (with confirmation, context-aware refresh)
+   =========================================================== */
+async function requestDelete(id) {
+  const b = state.bills.find(x => x.id === id);
+  if (!b) return;
+  const ok = await confirmAction(`Delete "${b.name}" (${money(b.amount)})? This can't be undone.`, 'Delete');
+  if (!ok) return;
+  state.bills = state.bills.filter(x => x.id !== id);
+  saveState();
+
+  const billOpen = isOpen('sheet-bill');
+  const dayOpen  = isOpen('sheet-day');
+  const reopenDay = (billOpen && billOpenedFromDay) ? dayModalDay : null;
+
+  if (billOpen) { billOpenedFromDay = false; closeSheet('sheet-bill'); }
+  renderAll();
+  if (reopenDay !== null) openDay(reopenDay);
+  else if (dayOpen) renderDaySheet(dayModalDay);
+}
+
+/* ===========================================================
+   Bill add / edit
+   =========================================================== */
+function fillBillForm(b) {
+  $('f-name').value = b ? b.name : '';
+  $('f-amt').value  = b ? b.amount : '';
+  $('f-day').value  = b ? b.day : '';
+  $('f-cat').value  = b ? b.category : 'subscriptions';
+  $('f-note').value = (b && b.note) ? b.note : '';
+  $('f-auto').checked = !!(b && b.autopay);
+}
+// If the bill sheet is opened while the day sheet is showing, close the day
+// sheet first and remember to reopen it afterwards.
+function maybeFromDay() {
+  if (topSheet() === 'sheet-day') { billOpenedFromDay = true; closeSheet('sheet-day'); }
+  else billOpenedFromDay = false;
+}
+function openAdd(day) {
+  maybeFromDay();
+  editId = null;
+  $('bill-title').textContent = 'Add bill';
+  $('del-bill').style.display = 'none';
+  fillBillForm(null);
+  if (day) $('f-day').value = day;
+  updateCoverageHint();
+  openSheet('sheet-bill');
+}
+function openEdit(id) {
+  const b = state.bills.find(x => x.id === id);
+  if (!b) return;
+  maybeFromDay();
+  editId = id;
+  $('bill-title').textContent = 'Edit bill';
+  $('del-bill').style.display = 'inline-flex';
+  fillBillForm(b);
+  updateCoverageHint();
+  openSheet('sheet-bill');
+}
+function flashInvalid(id) {
+  const el = $(id);
+  el.style.borderColor = 'var(--danger)';
+  el.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent)';
+  el.focus();
+  setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1400);
+}
+function updateCoverageHint() {
+  const hint = $('bill-coverage');
+  hint.classList.remove('warn');
+  const day = parseInt($('f-day').value, 10);
+  if (!Number.isFinite(day) || day < 1) { hint.textContent = ''; return; }
+  const n = daysInMonth(curYear, curMonth);
+  const eff = Math.min(day, n);
+  const pays = paydaysInMonth(curYear, curMonth, state.settings);
+  if (!pays.length) { hint.textContent = ''; return; }
+  if (eff < pays[0]) {
+    hint.classList.add('warn');
+    hint.innerHTML = `Due before the first ${MONTHS_SHORT[curMonth]} paycheck — covered by your <b>previous</b> check.`;
+    return;
+  }
+  let cover = pays[0];
+  for (const p of pays) if (p <= eff) cover = p;
+  hint.innerHTML = `In ${MONTHS_SHORT[curMonth]}, this is covered by the <b>${MONTHS_SHORT[curMonth]} ${cover}</b> paycheck.`;
+}
+function saveBill() {
+  const name = $('f-name').value.trim();
+  const amount = parseFloat($('f-amt').value);
+  let day = parseInt($('f-day').value, 10);
+  const category = $('f-cat').value;
+  const note = $('f-note').value.trim();
+  const autopay = $('f-auto').checked;
+
+  if (!name) { flashInvalid('f-name'); return; }
+  if (!Number.isFinite(amount) || amount < 0) { flashInvalid('f-amt'); return; }
+  if (!Number.isFinite(day)) day = 1;
+  day = Math.min(31, Math.max(1, day));
+
+  if (editId !== null) {
+    const b = state.bills.find(x => x.id === editId);
+    if (b) Object.assign(b, { name, amount, day, category, note, autopay });
+  } else {
+    state.bills.push({ id: state.nextId++, name, amount, day, category, note, autopay });
+  }
+  saveState();
+
+  const reopenDay = billOpenedFromDay ? dayModalDay : null;
+  billOpenedFromDay = false;
+  closeSheet('sheet-bill');
+  renderAll();
+  if (reopenDay !== null) openDay(reopenDay);
+}
+
+/* ===========================================================
+   Day detail
+   =========================================================== */
+function openDay(day) {
+  dayModalDay = day;
+  renderDaySheet(day);
+  if (!isOpen('sheet-day')) openSheet('sheet-day');
+}
+function renderDaySheet(day) {
+  const n = daysInMonth(curYear, curMonth);
+  const dateObj = new Date(curYear, curMonth, day);
+  $('day-title').textContent = `${MONTHS[curMonth]} ${day}`;
+  $('day-sub').textContent = DOW[dateObj.getDay()] + (isToday(curYear, curMonth, day) ? ' · Today' : '');
+
+  const pays = paydaysInMonth(curYear, curMonth, state.settings);
+  const isPay = pays.includes(day);
+  const amt = checkAmount(curYear, curMonth, day);
+  const overridden = hasOverride(curYear, curMonth, day);
+  $('day-payday-wrap').innerHTML = isPay
+    ? `<div class="day-payday">
+         <div><i class="ti ti-cash" aria-hidden="true"></i> ${esc(state.settings.payLabel || 'Payday')} — <b>+${money(amt)}</b>${overridden ? '' : ' <span class="dp-est">(est.)</span>'}</div>
+         <div class="dp-edit">
+           <label for="dp-amt">This check:</label>
+           <div class="input-money"><input type="number" id="dp-amt" min="0" step="1" inputmode="numeric" value="${amt}"></div>
+           <button class="mini" id="dp-save">Set</button>
+           ${overridden ? '<button class="mini" id="dp-clear">Use default</button>' : ''}
+         </div>
+       </div>`
+    : '';
+
+  const extras = extraItemsOnDay(curYear, curMonth, day);
+  $('day-income-wrap').innerHTML = `<div class="day-income">
+      <div class="di-title"><i class="ti ti-coin" aria-hidden="true"></i> One-off income on the ${ordinal(day)}</div>
+      ${extras.map(x => `<div class="di-item"><span class="nm">${esc(x.label)}</span><span class="amt">+${money(x.amount)}</span><button class="x" data-eid="${x.id}" aria-label="Remove ${esc(x.label)}">&#10005;</button></div>`).join('')}
+      <div class="di-add">
+        <div class="input-money"><input type="number" id="di-amt" class="di-amt" min="0" step="1" inputmode="numeric" placeholder="0"></div>
+        <input type="text" id="di-label" placeholder="e.g. side gig, refund" autocomplete="off">
+        <button class="btn primary sm" id="di-add-btn"><i class="ti ti-plus" aria-hidden="true"></i> Add</button>
+      </div>
+    </div>`;
+
+  const dayBills = state.bills.filter(b => effDay(b, n) === day).sort((a,b)=>b.amount-a.amount);
+  const list = $('day-list');
+  if (dayBills.length) {
+    list.innerHTML = dayBills.map(b => {
+      const shifted = b.day > n;
+      const paid = isPaid(b.id, curYear, curMonth);
+      const note = shifted
+        ? `Due the ${ordinal(b.day)} — shown here (last day of ${MONTHS_SHORT[curMonth]})`
+        : (b.note || '');
+      return `<div class="bill-row${paid ? ' paid' : ''}" data-bid="${b.id}" tabindex="0">
+        <button class="paid-toggle${paid ? ' on' : ''}" data-bid="${b.id}" aria-label="${paid ? 'Mark unpaid' : 'Mark paid'}" title="${paid ? 'Paid — tap to undo' : 'Mark paid'}"><i class="ti ti-check" aria-hidden="true"></i></button>
+        <span class="row-cat-dot" style="background:${catColor(b.category)}"></span>
+        <div class="row-name"><span class="nm">${esc(b.name)} <span class="row-cat">${catLabel(b.category)}</span>${b.autopay ? ' <span class="autopay-badge"><i class="ti ti-bolt" aria-hidden="true"></i>auto</span>' : ''}</span>
+          ${note ? `<div class="row-note">${esc(note)}</div>` : ''}
+        </div>
+        <div class="row-amt">${money(b.amount)}</div>
+        <button class="row-del" data-bid="${b.id}" aria-label="Delete ${esc(b.name)}">&#10005;</button>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.paid-toggle').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); togglePaid(parseInt(btn.dataset.bid)); }));
+    list.querySelectorAll('.bill-row').forEach(row => {
+      const bid = parseInt(row.dataset.bid);
+      row.addEventListener('click', e => { if (!e.target.closest('.row-del') && !e.target.closest('.paid-toggle')) openEdit(bid); });
+      row.addEventListener('keydown', e => { if (e.key === 'Enter') openEdit(bid); });
+    });
+    list.querySelectorAll('.row-del').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); requestDelete(parseInt(btn.dataset.bid)); }));
+  } else {
+    list.innerHTML = `<div class="day-empty">No bills due on the ${ordinal(day)}.</div>`;
+  }
+
+  const total = dayBills.reduce((s,b)=>s+b.amount, 0);
+  $('day-total').innerHTML = dayBills.length
+    ? `<span>${dayBills.length} bill${dayBills.length===1?'':'s'} due</span><b>${money(total)}</b>`
+    : '';
+
+  const dpSave = $('dp-save');
+  if (dpSave) dpSave.addEventListener('click', () => { setCheckAmount(curYear, curMonth, day, $('dp-amt').value); saveState(); rerender(); });
+  const dpClear = $('dp-clear');
+  if (dpClear) dpClear.addEventListener('click', () => { setCheckAmount(curYear, curMonth, day, ''); saveState(); rerender(); });
+  const diAdd = $('di-add-btn');
+  if (diAdd) diAdd.addEventListener('click', () => {
+    const ok = addExtraIncome(curYear, curMonth, day, $('di-amt').value, $('di-label').value);
+    if (ok) { saveState(); rerender(); } else { flashInvalid('di-amt'); }
+  });
+  $('day-income-wrap').querySelectorAll('.di-item .x').forEach(btn =>
+    btn.addEventListener('click', () => { removeExtraIncome(parseInt(btn.dataset.eid)); saveState(); rerender(); }));
+}
+
+/* ===========================================================
+   Settings
+   =========================================================== */
+function openSettings() {
+  const s = state.settings;
+  const radio = document.querySelector(`input[name="freq"][value="${s.payFrequency}"]`);
+  if (radio) radio.checked = true;
+  $('s-anchor').value  = s.payAnchor || '2025-07-11';
+  $('s-semi1').value   = (s.semiDays && s.semiDays[0] != null) ? s.semiDays[0] : 15;
+  $('s-semi2').value   = (s.semiDays && s.semiDays[1] != null) ? s.semiDays[1] : 31;
+  $('s-monthly').value = s.monthlyDay || 1;
+  $('s-pay').value     = s.paycheck || '';
+  $('s-label').value   = s.payLabel || '';
+  $('s-balance').value = (s.balance == null) ? '' : s.balance;
+  const _tp = todayParts();
+  $('s-balance-date').value = s.balanceAsOf || isoOf(_tp.y, _tp.m, _tp.d);
+  updateFreqFields();
+  openSheet('sheet-settings');
+}
+function updateFreqFields() {
+  const checked = document.querySelector('input[name="freq"]:checked');
+  const f = checked ? checked.value : 'biweekly';
+  $('cond-anchor').classList.toggle('show', f === 'weekly' || f === 'biweekly');
+  $('cond-semi').classList.toggle('show', f === 'semimonthly');
+  $('cond-monthly').classList.toggle('show', f === 'monthly');
+}
+function saveSettings() {
+  const checked = document.querySelector('input[name="freq"]:checked');
+  const s = state.settings;
+  s.payFrequency = checked ? checked.value : 'biweekly';
+  s.payAnchor = $('s-anchor').value || '2025-07-11';
+  let s1 = parseInt($('s-semi1').value, 10); if (!Number.isFinite(s1)) s1 = 15;
+  let s2 = parseInt($('s-semi2').value, 10); if (!Number.isFinite(s2)) s2 = 31;
+  s.semiDays = [Math.min(31, Math.max(1, s1)), Math.min(31, Math.max(1, s2))].sort((a,b)=>a-b);
+  let md = parseInt($('s-monthly').value, 10); if (!Number.isFinite(md)) md = 1;
+  s.monthlyDay = Math.min(31, Math.max(1, md));
+  let pc = parseFloat($('s-pay').value); if (!Number.isFinite(pc) || pc < 0) pc = 0;
+  s.paycheck = Math.round(pc);
+  s.payLabel = $('s-label').value.trim() || 'Payroll';
+  const balRaw = $('s-balance').value;
+  if (balRaw === '' || balRaw == null || !Number.isFinite(parseFloat(balRaw))) {
+    s.balance = null; s.balanceAsOf = null;
+  } else {
+    s.balance = Math.round(parseFloat(balRaw) * 100) / 100;
+    const _tp = todayParts();
+    s.balanceAsOf = $('s-balance-date').value || isoOf(_tp.y, _tp.m, _tp.d);
+  }
+  saveState();
+  closeSheet('sheet-settings');
+  renderAll();
+}
+
+/* ===========================================================
+   Export / import / reset
+   =========================================================== */
+function exportData() {
+  try {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bill-pay-calendar.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    confirmAction('Export is not available in this preview. Download the HTML file and open it locally to export.', 'OK');
+  }
+}
+// Keep the user's pay schedule, balance, and theme; wipe bills and per-month tracking.
+function blankState() {
+  const keepSettings = Object.assign({}, state.settings);
+  return { bills: [], settings: keepSettings, paid: {}, payOverrides: {}, extraIncome: [], nextId: 1000 };
+}
+async function startBlank() {
+  const ok = await confirmAction('Clear all bills and start with a blank calendar? Your pay schedule and balance stay. This can\'t be undone.', 'Start blank');
+  if (ok) { state = blankState(); saveState(); renderAll(); }
+}
+async function loadSample() {
+  const ok = await confirmAction('Load the sample bill set? This replaces your current bills (your pay schedule and balance stay).', 'Load sample');
+  if (ok) {
+    const sample = defaultState();
+    state.bills = sample.bills;
+    state.paid = {}; state.payOverrides = {}; state.extraIncome = [];
+    state.nextId = Math.max(state.nextId || 0, sample.nextId);
+    saveState(); renderAll();
+  }
+}
+
+/* ===========================================================
+   Event wiring
+   =========================================================== */
+$('btn-add').addEventListener('click', () => openAdd(null));
+$('btn-settings').addEventListener('click', openSettings);
+$('btn-theme').addEventListener('click', () => {
+  state.settings.theme = effectiveTheme() === 'dark' ? 'light' : 'dark';
+  saveState(); applyTheme();
+});
+$('prev').addEventListener('click', () => { curMonth--; if (curMonth < 0) { curMonth = 11; curYear--; } renderAll(); });
+$('next').addEventListener('click', () => { curMonth++; if (curMonth > 11) { curMonth = 0; curYear++; } renderAll(); });
+$('today-btn').addEventListener('click', () => { const t = new Date(); curYear = t.getFullYear(); curMonth = t.getMonth(); renderAll(); });
+
+$('save-bill').addEventListener('click', saveBill);
+$('del-bill').addEventListener('click', () => { if (editId !== null) requestDelete(editId); });
+$('f-day').addEventListener('input', updateCoverageHint);
+
+$('day-add').addEventListener('click', () => openAdd(dayModalDay));
+
+$('save-settings').addEventListener('click', saveSettings);
+document.querySelectorAll('input[name="freq"]').forEach(r => r.addEventListener('change', updateFreqFields));
+
+$('btn-export').addEventListener('click', exportData);
+$('btn-sample').addEventListener('click', loadSample);
+$('btn-blank').addEventListener('click', startBlank);
+$('btn-import').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = migrate(JSON.parse(text));
+    const ok = await confirmAction('Import this backup? It will replace your current bills and settings.', 'Import');
+    if (ok) { state = parsed; saveState(); renderAll(); }
+  } catch (err) {
+    confirmAction('That file could not be read as a valid backup.', 'OK');
+  }
+  e.target.value = '';
+});
+
+/* ===========================================================
+   Boot
+   =========================================================== */
+renderAll();
+</script>
+</body>
+</html>
